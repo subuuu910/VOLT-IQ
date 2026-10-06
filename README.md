@@ -4,51 +4,39 @@ AI-powered classroom energy-waste detection and smart energy monitoring system.
 
 ## 📌 About the Project
 
-VOLT-IQ is a smart classroom energy monitoring project designed to identify unnecessary electricity usage when a classroom is unoccupied.
+VOLT-IQ is an AI-powered classroom energy intelligence system designed to detect unnecessary electricity consumption in educational environments.
+
+The system combines computer vision-based occupancy detection with classroom appliance monitoring to identify situations where electrical appliances such as lights, fans, and projectors remain ON while a classroom is unoccupied.
+
+VOLT-IQ provides classroom monitoring, AI occupancy analysis, energy-waste detection, alerts, and energy analytics through a centralized dashboard.
 
 ## 🎯 Problem Statement
 
-Electrical appliances such as lights, fans, and projectors may remain switched on even when classrooms are empty. This can lead to unnecessary energy consumption.
+Electrical appliances such as lights, fans, and projectors may remain switched ON even when classrooms are empty.
+
+This results in unnecessary electricity consumption, increased operating costs, and avoidable energy wastage.
 
 ## 💡 Proposed Solution
 
-VOLT-IQ monitors classroom occupancy and appliance status. When a classroom is empty while an appliance is ON, the system detects possible energy wastage and generates an alert.
+VOLT-IQ monitors classroom occupancy and appliance status.
 
-## ✅ Current Features
+The system uses computer vision to detect people through a classroom camera feed and determines whether the classroom is Occupied or Empty.
 
-- Classroom monitoring
-- Occupied / Empty status
-- Light ON / OFF control
-- Fan ON / OFF control
-- Projector ON / OFF control
-- Basic energy-waste detection
-- Energy-waste alerts
-- Dashboard
-- Classroom management
-- Responsive interface
+It then combines the occupancy result with appliance status to identify possible energy wastage.
 
-## 🤖 Planned AI Features
+### Decision Flow
 
-- Computer Vision based occupancy detection
-- Automatic energy-waste detection
-- Advanced energy analytics
-- AI-based energy usage analysis
-- Automated appliance control
-
-## 🛠️ Technologies Used
-
-- HTML
-- CSS
-- JavaScript
-- Lucide Icons
-- Computer Vision (planned)
-
-## 🚀 Future Development
-
-The project will be enhanced with AI-based occupancy detection, advanced analytics, backend integration, and automated energy management.
-
-## 👩‍💻 Project
-
-**VOLT-IQ – AI Energy-Waste Detection**
-
-Developed as part of the CoE Growth Project.
+```text
+Camera Feed
+     ↓
+AI Person Detection
+     ↓
+Occupancy Detection
+     ↓
+Appliance Status
+     ↓
+Decision Engine
+     ↓
+Energy-Waste Detection
+     ↓
+Alert + Dashboard + Analytics
