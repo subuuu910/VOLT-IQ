@@ -1,42 +1,55 @@
-# VOLT-IQ ⚡
+# VOLT IQ ⚡
 
 AI-powered classroom energy-waste detection and smart energy monitoring system.
 
 ## 📌 About the Project
 
-VOLT-IQ is an AI-powered classroom energy intelligence system designed to detect unnecessary electricity consumption in educational environments.
+VOLT IQ is a smart classroom energy monitoring system designed to detect unnecessary electricity usage when classrooms are unoccupied.
 
-The system combines computer vision-based occupancy detection with classroom appliance monitoring to identify situations where electrical appliances such as lights, fans, and projectors remain ON while a classroom is unoccupied.
-
-VOLT-IQ provides classroom monitoring, AI occupancy analysis, energy-waste detection, alerts, and energy analytics through a centralized dashboard.
+The completed system combines AI-based occupancy detection with classroom appliance monitoring to identify potential energy wastage from lights, fans, and projectors.
 
 ## 🎯 Problem Statement
 
-Electrical appliances such as lights, fans, and projectors may remain switched ON even when classrooms are empty.
-
-This results in unnecessary electricity consumption, increased operating costs, and avoidable energy wastage.
+Electrical appliances such as lights, fans, and projectors may remain switched ON even when classrooms are empty. This can lead to unnecessary energy consumption and energy wastage in educational institutions.
 
 ## 💡 Proposed Solution
 
-VOLT-IQ monitors classroom occupancy and appliance status.
+VOLT IQ monitors classroom occupancy and appliance status. Computer vision is used to detect people through classroom camera feeds and determine whether a classroom is occupied or empty.
 
-The system uses computer vision to detect people through a classroom camera feed and determines whether the classroom is Occupied or Empty.
+The system combines occupancy information with appliance status and uses a decision engine to identify energy-waste conditions.
 
-It then combines the occupancy result with appliance status to identify possible energy wastage.
+If a classroom is empty while one or more appliances are ON, VOLT IQ detects potential energy wastage and generates an alert.
 
-### Decision Flow
+## 🤖 AI Features
+
+- Computer Vision based occupancy detection
+- TensorFlow.js integration
+- COCO-SSD person detection
+- Real-time people counting
+- Occupied / Empty classification
+- Classroom camera monitoring
+- AI Detection interface
+- Occupancy-based energy analysis
+
+## ⚡ Energy Monitoring
+
+VOLT IQ monitors the status of:
+
+- 💡 Lights
+- 🌀 Fans
+- 📽 Projectors
+
+The system evaluates appliance usage together with classroom occupancy to identify unnecessary energy consumption.
+
+## 🚨 Energy-Waste Detection
+
+The core detection logic follows:
 
 ```text
-Camera Feed
-     ↓
-AI Person Detection
-     ↓
-Occupancy Detection
-     ↓
-Appliance Status
-     ↓
-Decision Engine
-     ↓
-Energy-Waste Detection
-     ↓
-Alert + Dashboard + Analytics
+Classroom Empty
+       +
+Any Appliance ON
+       ↓
+Energy Waste Detected
+       ↓
+Alert Generated
