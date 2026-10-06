@@ -1,0 +1,11 @@
+{
+  "name": "VOLT IQ",
+  "description": "Smart classroom energy monitoring and AI-powered occupancy and energy waste detection.",
+  "requestFramePermissions": [
+    "camera"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
+

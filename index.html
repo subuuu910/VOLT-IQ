@@ -1,0 +1,2308 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VOLT IQ - AI Energy-Waste Detection System</title>
+  <meta name="description" content="Smart classroom energy monitoring and AI-powered occupancy and energy waste detection." />
+  <meta property="og:title" content="VOLT IQ - AI Energy-Waste Detection System" />
+  <meta property="og:description" content="Smart classroom energy monitoring and AI-powered occupancy and energy waste detection." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <!-- TensorFlow.js and COCO-SSD for browser AI person detection -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.20.0/dist/tf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js"></script>
+  <style>
+    :root {
+      --bg-main: #080d18;
+      --bg-sidebar: #0b1220;
+      --bg-card: #101a2b;
+      --bg-card-hover: #152238;
+      --border: #1a273d;
+      --border-bright: #243654;
+      --primary: #1678ef;
+      --primary-light: #62a8ff;
+      --green: #35d07f;
+      --orange: #ffb84d;
+      --red: #ff6378;
+      --text-main: #e6edf8;
+      --text-muted: #8496b3;
+      --text-sub: #5d7191;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: var(--bg-main);
+      color: var(--text-main);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-size: 12px;
+      line-height: 1.5;
+      min-height: 100vh;
+      display: flex;
+      overflow-x: hidden;
+    }
+    a, button { font-family: inherit; }
+    .mono { font-family: 'JetBrains Mono', monospace; }
+
+    /* LAYOUT */
+    #sidebar {
+      width: 220px;
+      background-color: var(--bg-sidebar);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      min-height: 100vh;
+      position: sticky;
+      top: 0;
+      z-index: 40;
+    }
+    #main-content {
+      flex: 1;
+      padding: 20px 24px;
+      max-width: 1400px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    /* SIDEBAR */
+    .brand {
+      padding: 18px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .brand-logo {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, #1678ef, #0b4592);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      color: #fff;
+      box-shadow: 0 0 12px rgba(22, 120, 239, 0.4);
+    }
+    .brand-title {
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      color: #fff;
+    }
+    .brand-sub {
+      font-size: 9px;
+      color: var(--text-muted);
+      letter-spacing: 0.3px;
+      text-transform: uppercase;
+    }
+    .nav-group-title {
+      font-size: 9px;
+      font-weight: 700;
+      color: var(--text-sub);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      padding: 16px 20px 6px;
+    }
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 20px;
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 12px;
+      font-weight: 500;
+      border-left: 3px solid transparent;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .nav-item:hover {
+      color: var(--text-main);
+      background-color: rgba(22, 120, 239, 0.08);
+    }
+    .nav-item.active {
+      color: #fff;
+      background-color: rgba(22, 120, 239, 0.14);
+      border-left-color: var(--primary);
+    }
+    .nav-badge {
+      margin-left: auto;
+      padding: 2px 6px;
+      border-radius: 10px;
+      font-size: 9px;
+      font-weight: 700;
+      background-color: rgba(255, 99, 120, 0.2);
+      color: var(--red);
+      border: 1px solid rgba(255, 99, 120, 0.4);
+    }
+
+    /* TOP HEADER */
+    .top-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--border);
+    }
+    .header-title-wrap h1 {
+      font-size: 21px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 2px;
+    }
+    .header-title-wrap p {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+    .system-status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 5px 12px;
+      border-radius: 20px;
+      background-color: rgba(53, 208, 127, 0.1);
+      border: 1px solid rgba(53, 208, 127, 0.3);
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--green);
+    }
+    .pulse-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background-color: var(--green);
+      box-shadow: 0 0 8px var(--green);
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.85); }
+    }
+
+    /* STATS GRID */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+    .stat-card {
+      background-color: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 16px;
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.15s ease, border-color 0.15s ease;
+    }
+    .stat-card:hover {
+      border-color: var(--border-bright);
+      transform: translateY(-1px);
+    }
+    .stat-label {
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--text-sub);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .stat-val {
+      font-size: 28px;
+      font-weight: 700;
+      color: #fff;
+      line-height: 1.1;
+    }
+    .stat-sub {
+      font-size: 10px;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    /* SECTION CARD & TITLES */
+    .section-card {
+      background-color: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 18px 20px;
+      margin-bottom: 20px;
+    }
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+    }
+    .section-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* BUTTONS */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition: all 0.15s ease;
+      white-space: nowrap;
+    }
+    .btn-primary {
+      background-color: var(--primary);
+      color: #fff;
+      box-shadow: 0 2px 8px rgba(22, 120, 239, 0.3);
+    }
+    .btn-primary:hover { background-color: #126ad6; }
+    .btn-secondary {
+      background-color: #152338;
+      border-color: var(--border-bright);
+      color: var(--text-main);
+    }
+    .btn-secondary:hover { background-color: #1a2c47; }
+    .btn-danger {
+      background-color: rgba(255, 99, 120, 0.15);
+      border-color: rgba(255, 99, 120, 0.4);
+      color: var(--red);
+    }
+    .btn-danger:hover { background-color: rgba(255, 99, 120, 0.25); }
+    .btn-success {
+      background-color: rgba(53, 208, 127, 0.15);
+      border-color: rgba(53, 208, 127, 0.4);
+      color: var(--green);
+    }
+
+    /* BADGES */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+    .badge-waste {
+      background-color: rgba(255, 99, 120, 0.15);
+      border: 1px solid rgba(255, 99, 120, 0.5);
+      color: var(--red);
+      animation: alertPulse 2s infinite;
+    }
+    .badge-normal {
+      background-color: rgba(53, 208, 127, 0.15);
+      border: 1px solid rgba(53, 208, 127, 0.35);
+      color: var(--green);
+    }
+    .badge-empty {
+      background-color: rgba(132, 150, 179, 0.15);
+      border: 1px solid rgba(132, 150, 179, 0.3);
+      color: var(--text-muted);
+    }
+    .badge-occupied {
+      background-color: rgba(98, 168, 255, 0.15);
+      border: 1px solid rgba(98, 168, 255, 0.4);
+      color: var(--primary-light);
+    }
+    @keyframes alertPulse {
+      0%, 100% { box-shadow: 0 0 0 rgba(255, 99, 120, 0); }
+      50% { box-shadow: 0 0 8px rgba(255, 99, 120, 0.4); }
+    }
+
+    /* TABLE */
+    .table-container {
+      overflow-x: auto;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+    th {
+      background-color: #0d1524;
+      padding: 10px 14px;
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--text-sub);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      border-bottom: 1px solid var(--border);
+    }
+    td {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border);
+      font-size: 12px;
+      color: var(--text-main);
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background-color: rgba(22, 120, 239, 0.04); }
+
+    /* CAMERA GRID */
+    .camera-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+    .camera-card {
+      background-color: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+    .camera-card.waste-alert {
+      border-color: rgba(255, 99, 120, 0.6);
+      box-shadow: 0 0 14px rgba(255, 99, 120, 0.15);
+    }
+    .camera-header {
+      padding: 10px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+      background-color: rgba(11, 18, 32, 0.7);
+    }
+    .camera-preview {
+      height: 180px;
+      background-color: #070b14;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+    .camera-preview canvas, .camera-preview video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .camera-overlay-hud {
+      position: absolute;
+      top: 8px;
+      left: 8px;
+      right: 8px;
+      display: flex;
+      justify-content: space-between;
+      font-size: 9px;
+      color: #9ab0d3;
+      background: rgba(8, 13, 24, 0.75);
+      padding: 3px 8px;
+      border-radius: 4px;
+      backdrop-filter: blur(4px);
+    }
+    .camera-body {
+      padding: 12px 14px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .appliance-chips {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .appliance-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-size: 10px;
+      font-weight: 500;
+      background-color: #0b1424;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      cursor: pointer;
+      user-select: none;
+      transition: all 0.15s ease;
+    }
+    .appliance-chip.on {
+      background-color: rgba(255, 184, 77, 0.12);
+      border-color: rgba(255, 184, 77, 0.45);
+      color: var(--orange);
+    }
+
+    /* AI ARCHITECTURE FLOW */
+    .flow-chain {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      padding: 12px;
+      background-color: #0c1424;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+    }
+    .flow-step {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      background-color: #121e33;
+      border: 1px solid var(--border-bright);
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--text-main);
+    }
+    .flow-arrow {
+      color: var(--primary-light);
+      font-weight: bold;
+    }
+
+    /* SWITCH TOGGLE */
+    .switch-btn {
+      padding: 4px 10px;
+      font-size: 10px;
+      font-weight: 600;
+      border-radius: 4px;
+      cursor: pointer;
+      border: 1px solid var(--border-bright);
+      background-color: #121e33;
+      color: var(--text-muted);
+      transition: all 0.15s ease;
+    }
+    .switch-btn.active-on {
+      background-color: rgba(255, 184, 77, 0.2);
+      border-color: var(--orange);
+      color: var(--orange);
+    }
+    .switch-btn.active-off {
+      background-color: #0e1726;
+      border-color: var(--border);
+      color: var(--text-sub);
+    }
+
+    /* ALERTS CARDS */
+    .alert-card {
+      background-color: var(--bg-card);
+      border-left: 4px solid var(--red);
+      border-top: 1px solid var(--border);
+      border-right: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px 16px;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+    }
+    .alert-icon-box {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      background-color: rgba(255, 99, 120, 0.15);
+      border: 1px solid rgba(255, 99, 120, 0.35);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--red);
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+
+    /* AI DETECTION VIEW */
+    .ai-feed-container {
+      background-color: #060a12;
+      border: 1px solid var(--border-bright);
+      border-radius: 10px;
+      position: relative;
+      height: 440px;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    #ai-video {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      display: block;
+    }
+    #ai-canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+    }
+    .ai-hud {
+      position: absolute;
+      bottom: 12px;
+      left: 12px;
+      right: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background-color: rgba(11, 18, 32, 0.85);
+      border: 1px solid var(--border-bright);
+      border-radius: 8px;
+      padding: 10px 16px;
+      backdrop-filter: blur(6px);
+    }
+
+    /* PAGES VISIBILITY */
+    .page-view { display: none; }
+    .page-view.active { display: block; }
+
+    /* MOBILE TOGGLE */
+    .mobile-bar {
+      display: none;
+      background-color: var(--bg-sidebar);
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+
+    /* RESPONSIVE */
+    @media (max-width: 1024px) {
+      .camera-grid { grid-template-columns: repeat(2, 1fr); }
+      .stats-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 768px) {
+      body { flex-direction: column; }
+      #sidebar {
+        position: fixed;
+        left: -240px;
+        transition: left 0.25s ease;
+        height: 100vh;
+      }
+      #sidebar.open { left: 0; }
+      .mobile-bar { display: flex; }
+      .camera-grid { grid-template-columns: 1fr; }
+      .stats-grid { grid-template-columns: 1fr; }
+      #main-content { padding: 14px; }
+      .ai-feed-container { height: 300px; }
+    }
+
+    /* MODAL STYLES */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background-color: rgba(4, 7, 13, 0.85);
+      backdrop-filter: blur(6px);
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+    .modal-card {
+      background-color: var(--bg-card);
+      border: 1px solid var(--border-bright);
+      border-radius: 12px;
+      width: 100%;
+      max-width: 490px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.65);
+      overflow: hidden;
+      animation: modalFadeIn 0.2s ease-out;
+    }
+    @keyframes modalFadeIn {
+      from { opacity: 0; transform: scale(0.96) translateY(8px); }
+      to { opacity: 1; transform: scale(1) translateY(0); }
+    }
+    .modal-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background-color: var(--bg-sidebar);
+    }
+    .modal-close-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 22px;
+      cursor: pointer;
+      line-height: 1;
+      padding: 4px 8px;
+      border-radius: 4px;
+      transition: all 0.15s ease;
+    }
+    .modal-close-btn:hover {
+      color: #fff;
+      background: rgba(255, 255, 255, 0.08);
+    }
+    .modal-card form {
+      padding: 20px;
+    }
+    .form-group {
+      margin-bottom: 14px;
+    }
+    .form-group label {
+      display: block;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-sub);
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+    .form-control {
+      width: 100%;
+      background-color: #0b1424;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 9px 12px;
+      color: #fff;
+      font-size: 12px;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+      box-sizing: border-box;
+    }
+    .form-control:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px rgba(22, 120, 239, 0.25);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Mobile Top Bar -->
+  <div class="mobile-bar">
+    <div style="display:flex;align-items:center;gap:8px;">
+      <div class="brand-logo" style="width:26px;height:26px;font-size:13px;">⚡</div>
+      <span style="font-weight:700;font-size:14px;color:#fff;">VOLT IQ</span>
+    </div>
+    <button class="btn btn-secondary" onclick="toggleSidebar()">Menu ☰</button>
+  </div>
+
+  <!-- Left Sidebar -->
+  <nav id="sidebar">
+    <div class="brand">
+      <div class="brand-logo">⚡</div>
+      <div>
+        <div class="brand-title">VOLT IQ</div>
+        <div class="brand-sub">AI Energy Intelligence</div>
+      </div>
+    </div>
+
+    <div class="nav-group-title">Monitoring</div>
+    <div class="nav-item active" onclick="switchPage('dashboard')">
+      <span>📊</span> Dashboard
+    </div>
+    <div class="nav-item" onclick="switchPage('cameras')">
+      <span>📹</span> Classroom Cameras
+    </div>
+    <div class="nav-item" onclick="switchPage('analytics')">
+      <span>📈</span> Energy Analytics
+    </div>
+    <div class="nav-item" onclick="switchPage('alerts')">
+      <span>⚠️</span> Alerts
+      <span id="nav-alert-badge" class="nav-badge" style="display:none;">0</span>
+    </div>
+
+    <div class="nav-group-title">AI System</div>
+    <div class="nav-item" onclick="switchPage('ai')">
+      <span>🤖</span> AI Detection
+    </div>
+
+    <div class="nav-group-title">System</div>
+    <div class="nav-item" onclick="switchPage('settings')">
+      <span>⚙️</span> Settings
+    </div>
+
+    <div style="margin-top:auto;padding:16px 20px;border-top:1px solid var(--border);">
+      <div style="font-size:10px;color:var(--text-sub);margin-bottom:4px;">ENGINE STATUS</div>
+      <div style="display:flex;align-items:center;gap:6px;color:var(--green);font-size:11px;font-weight:600;">
+        <span class="pulse-dot"></span> Rule Engine Active
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Content Container -->
+  <main id="main-content">
+
+    <!-- Top Global Header -->
+    <header class="top-header">
+      <div class="header-title-wrap">
+        <h1 id="page-heading">Energy Monitoring Dashboard</h1>
+        <p id="page-subheading">Smart classroom energy monitoring and automated waste detection</p>
+      </div>
+      <div class="system-status">
+        <span class="pulse-dot"></span> SYSTEM ONLINE
+      </div>
+    </header>
+
+    <!-- ==================== PAGE: DASHBOARD ==================== -->
+    <section id="page-dashboard" class="page-view active">
+      <!-- 4 Stats Cards -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-label">
+            <span>Total Classrooms</span>
+            <span style="color:var(--primary-light)">🏢</span>
+          </div>
+          <div class="stat-val mono" id="stat-total-rooms">6</div>
+          <div class="stat-sub">Central Campus facility</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">
+            <span>Occupied Rooms</span>
+            <span style="color:var(--green)">👥</span>
+          </div>
+          <div class="stat-val mono" id="stat-occupied-rooms">0</div>
+          <div class="stat-sub" id="stat-occupied-sub">Active student presence</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">
+            <span>Empty Rooms</span>
+            <span style="color:var(--text-muted)">🚪</span>
+          </div>
+          <div class="stat-val mono" id="stat-empty-rooms">6</div>
+          <div class="stat-sub">No occupants detected</div>
+        </div>
+        <div class="stat-card" style="border-color:rgba(255,99,120,0.3);">
+          <div class="stat-label">
+            <span>Waste Alerts</span>
+            <span style="color:var(--red)">⚠️</span>
+          </div>
+          <div class="stat-val mono" id="stat-waste-alerts" style="color:var(--red);">0</div>
+          <div class="stat-sub" id="stat-waste-load-sub">0 W wasted load</div>
+        </div>
+      </div>
+
+      <!-- Quick Action / Live Waste Banner -->
+      <div id="live-waste-banner" class="section-card" style="display:none;background:linear-gradient(135deg, rgba(255,99,120,0.12), rgba(16,26,43,0.9));border-color:rgba(255,99,120,0.4);">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+          <div style="display:flex;align-items:center;gap:12px;">
+            <div style="width:36px;height:36px;border-radius:8px;background:rgba(255,99,120,0.2);display:flex;align-items:center;justify-content:center;color:var(--red);font-size:18px;">⚠️</div>
+            <div>
+              <div style="font-size:14px;font-weight:700;color:#fff;">Active Energy Waste Detected</div>
+              <div style="font-size:11px;color:var(--text-muted);" id="waste-banner-text">Appliances are consuming power in empty classrooms.</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-danger" onclick="switchPage('alerts')">View Alerts</button>
+            <button class="btn btn-secondary" onclick="turnOffAllWasted()">Turn Off Wasted</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Classroom Overview Table -->
+      <div class="section-card">
+        <div class="section-header">
+          <div class="section-title">
+            <span>Classroom Overview</span>
+            <span class="badge badge-normal" style="font-size:9px;">Live Status</span>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+            <button class="btn btn-primary" onclick="openAddClassroomModal()" style="padding:4px 10px;font-size:11px;">➕ Add Classroom</button>
+            <button class="btn btn-secondary" onclick="switchPage('cameras')">📹 View Cameras</button>
+            <button class="btn btn-primary" onclick="switchPage('ai')">🤖 AI Detection</button>
+          </div>
+        </div>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Classroom</th>
+                <th>Location</th>
+                <th>Occupancy</th>
+                <th>People</th>
+                <th>Appliances Active</th>
+                <th>Sensor Load</th>
+                <th>Decision</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="dashboard-classroom-rows">
+              <!-- Dynamically Populated -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- AI Flow Architecture Diagram -->
+      <div class="section-card">
+        <div class="section-header">
+          <div class="section-title">AI Energy-Waste Detection Pipeline</div>
+          <span style="font-size:11px;color:var(--text-sub);">Real-time Rule & Computer Vision Architecture</span>
+        </div>
+        <div class="flow-chain">
+          <div class="flow-step">📹 Camera Stream</div>
+          <span class="flow-arrow">→</span>
+          <div class="flow-step">🧠 AI Person Detection (COCO-SSD)</div>
+          <span class="flow-arrow">→</span>
+          <div class="flow-step">👥 Occupancy Calculation</div>
+          <span class="flow-arrow">→</span>
+          <div class="flow-step">⚡ Appliance Sensor Current Status</div>
+          <span class="flow-arrow">→</span>
+          <div class="flow-step">⚖️ Decision Engine</div>
+          <span class="flow-arrow">→</span>
+          <div class="flow-step" style="background:rgba(255,99,120,0.15);border-color:rgba(255,99,120,0.4);color:var(--red);">⚠️ Energy Waste Classification</div>
+          <span class="flow-arrow">→</span>
+          <div class="flow-step">📊 Dashboard & Alerts</div>
+        </div>
+        <div style="margin-top:10px;font-size:11px;color:var(--text-muted);line-height:1.6;">
+          <strong style="color:#fff;">Rule Logic:</strong> IF <span style="color:var(--text-muted);">Occupancy == EMPTY</span> AND (<span style="color:var(--orange);">Light == ON</span> OR <span style="color:var(--orange);">Fan == ON</span> OR <span style="color:var(--orange);">Projector == ON</span>) &rarr; <span style="color:var(--red);font-weight:600;">⚠ ENERGY WASTE ALERT</span>. When occupied, appliances are classified as <span style="color:var(--green);font-weight:600;">✓ NORMAL</span>.
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== PAGE: CLASSROOM CAMERAS ==================== -->
+    <section id="page-cameras" class="page-view">
+      <!-- Camera Allocation Banner -->
+      <div class="section-card" style="margin-bottom:16px;padding:12px 16px;background:rgba(22,120,239,0.06);border-color:rgba(22,120,239,0.25);">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+          <div>
+            <span style="font-weight:600;color:#fff;">Physical Camera Binding:</span>
+            <span style="color:var(--text-muted);font-size:11px;margin-left:6px;" id="camera-binding-text">
+              Demo Webcam mapped to Room 101 (Camera 101). Real deployments support multi-IP RTSP/WebRTC camera streams.
+            </span>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+            <button class="btn btn-primary" onclick="openAddClassroomModal()" style="padding:4px 10px;font-size:11px;">➕ Add Classroom</button>
+            <label style="font-size:11px;color:var(--text-sub);">Assign Webcam to:</label>
+            <select id="select-webcam-target" onchange="assignWebcamTarget(this.value)" style="background:#0b1424;color:#fff;border:1px solid var(--border-bright);padding:4px 8px;border-radius:4px;font-size:11px;">
+              <!-- Populated dynamically via populateRoomSelects() -->
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- 6 Classrooms Grid (3x2 Desktop, 2x3 Tablet, 1x6 Mobile) -->
+      <div class="camera-grid" id="cameras-grid-container">
+        <!-- Dynamically Rendered -->
+      </div>
+    </section>
+
+    <!-- ==================== PAGE: AI DETECTION ==================== -->
+    <section id="page-ai" class="page-view">
+      <div class="section-card" style="margin-bottom:16px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+          <div style="display:flex;align-items:center;gap:12px;">
+            <label style="font-size:13px;font-weight:600;color:#fff;">Select Classroom:</label>
+            <select id="ai-room-select" onchange="selectAIRoom(this.value)" style="background:#0c1626;color:#fff;border:1px solid var(--border-bright);padding:7px 12px;border-radius:6px;font-size:13px;font-weight:600;">
+              <option value="101">Room 101 (Science Lab)</option>
+              <option value="102">Room 102 (Math Hall)</option>
+              <option value="103">Room 103 (Computer Lab)</option>
+              <option value="104">Room 104 (Lecture Hall A)</option>
+              <option value="105">Room 105 (Physics Wing)</option>
+              <option value="106">Room 106 (Seminar Room)</option>
+            </select>
+          </div>
+
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button id="btn-start-ai" class="btn btn-primary" onclick="startAIDetection()">▶ Start AI Detection</button>
+            <button id="btn-stop-ai" class="btn btn-secondary" onclick="stopAIDetection()">■ Stop Detection</button>
+            <button id="btn-simulate-feed" class="btn btn-secondary" onclick="toggleSimulatedDetection()">👥 Toggle Test Crowd (+Person)</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Camera Feed & Real-time AI View -->
+      <div style="display:grid;grid-template-columns: 2fr 1fr;gap:16px;">
+        <div>
+          <div class="ai-feed-container">
+            <video id="ai-video" autoplay playsinline muted></video>
+            <canvas id="ai-canvas"></canvas>
+
+            <div id="ai-camera-fallback-msg" style="position:absolute;text-align:center;padding:20px;max-width:400px;display:none;">
+              <div style="font-size:32px;margin-bottom:10px;">📹</div>
+              <div style="font-size:14px;font-weight:700;color:#fff;margin-bottom:6px;">Camera Idle or Permission Required</div>
+              <div style="font-size:11px;color:var(--text-muted);margin-bottom:14px;">
+                Click "Start AI Detection" to enable your browser webcam with TensorFlow.js COCO-SSD, or use "Toggle Test Crowd" to test the AI detection logic.
+              </div>
+              <button class="btn btn-primary" onclick="startAIDetection()">Start Live Camera</button>
+            </div>
+
+            <div class="ai-hud">
+              <div>
+                <span style="font-size:10px;color:var(--text-sub);text-transform:uppercase;">Selected Target:</span>
+                <div style="font-size:12px;font-weight:700;color:#fff;" id="ai-hud-room">Room 101</div>
+              </div>
+              <div>
+                <span style="font-size:10px;color:var(--text-sub);text-transform:uppercase;">AI Model:</span>
+                <div style="font-size:11px;font-weight:600;color:var(--primary-light);" id="ai-model-status">COCO-SSD Ready</div>
+              </div>
+              <div>
+                <span style="font-size:10px;color:var(--text-sub);text-transform:uppercase;">Detected Persons:</span>
+                <div class="mono" style="font-size:16px;font-weight:700;color:#fff;" id="ai-hud-people">0</div>
+              </div>
+              <div>
+                <span style="font-size:10px;color:var(--text-sub);text-transform:uppercase;">Occupancy:</span>
+                <div id="ai-hud-occupancy"><span class="badge badge-empty">EMPTY</span></div>
+              </div>
+            </div>
+          </div>
+          <div style="margin-top:8px;display:flex;align-items:center;justify-content:space-between;font-size:11px;color:var(--text-sub);">
+            <span>Camera Stream: <strong style="color:var(--text-muted);" id="ai-stream-name">CAM-101 (HD 30fps)</strong></span>
+            <span>Vision Model: <strong>TensorFlow.js COCO-SSD</strong></span>
+            <span id="ai-fps-stat">Inference: Idle</span>
+          </div>
+        </div>
+
+        <!-- Telemetry & Decision Engine Evaluation Card -->
+        <div style="display:flex;flex-direction:column;gap:14px;">
+          <div class="section-card" style="margin-bottom:0;flex:1;">
+            <div class="section-header">
+              <div class="section-title">Decision Engine Telemetry</div>
+              <span id="ai-card-decision-badge" class="badge badge-normal">✓ NORMAL</span>
+            </div>
+
+            <div style="background:#09101c;border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:14px;">
+              <div style="font-size:10px;font-weight:700;color:var(--text-sub);text-transform:uppercase;margin-bottom:6px;">Current Rule Assessment</div>
+              <div id="ai-rule-calc-text" style="font-size:12px;color:var(--text-main);line-height:1.5;">
+                Occupancy is <strong>EMPTY</strong>. Checking electrical appliance sensors...
+              </div>
+              <div id="ai-rule-reason-text" style="margin-top:8px;font-size:11px;color:var(--red);font-weight:600;"></div>
+            </div>
+
+            <!-- Interactive Appliance Sensor Switches -->
+            <div style="font-size:11px;font-weight:700;color:var(--text-sub);text-transform:uppercase;margin-bottom:8px;">
+              Simulate Appliance Sensors
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px;">
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:#0d1626;border-radius:6px;border:1px solid var(--border);">
+                <div>
+                  <div style="font-size:12px;font-weight:600;color:#fff;">💡 Classroom Lights</div>
+                  <div style="font-size:10px;color:var(--text-muted);">Current Draw: 120 W</div>
+                </div>
+                <button id="btn-toggle-light" class="switch-btn" onclick="toggleAppliance('light')">OFF</button>
+              </div>
+
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:#0d1626;border-radius:6px;border:1px solid var(--border);">
+                <div>
+                  <div style="font-size:12px;font-weight:600;color:#fff;">🌀 Ceiling Fans</div>
+                  <div style="font-size:10px;color:var(--text-muted);">Current Draw: 80 W</div>
+                </div>
+                <button id="btn-toggle-fan" class="switch-btn" onclick="toggleAppliance('fan')">OFF</button>
+              </div>
+
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:#0d1626;border-radius:6px;border:1px solid var(--border);">
+                <div>
+                  <div style="font-size:12px;font-weight:600;color:#fff;">📽 Projector Unit</div>
+                  <div style="font-size:10px;color:var(--text-muted);">Current Draw: 200 W</div>
+                </div>
+                <button id="btn-toggle-proj" class="switch-btn" onclick="toggleAppliance('projector')">OFF</button>
+              </div>
+            </div>
+
+            <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
+              <span style="font-size:11px;color:var(--text-sub);">Active Sensor Load:</span>
+              <span id="ai-active-watts" class="mono" style="font-size:16px;font-weight:700;color:#fff;">0 W</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== PAGE: ENERGY ANALYTICS ==================== -->
+    <section id="page-analytics" class="page-view">
+      <!-- Summary Metrics Grid -->
+      <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));">
+        <div class="stat-card">
+          <div class="stat-label">Total Connected Load</div>
+          <div class="stat-val mono" id="analytics-total-load">0 W</div>
+          <div class="stat-sub" id="analytics-rooms-sub">Across all classrooms</div>
+        </div>
+        <div class="stat-card" style="border-color:rgba(255,99,120,0.4);">
+          <div class="stat-label">Wasted Power Load</div>
+          <div class="stat-val mono" id="analytics-waste-load" style="color:var(--red);">0 W</div>
+          <div class="stat-sub" id="analytics-waste-pct">0% of total consumption</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Active Waste Alerts</div>
+          <div class="stat-val mono" id="analytics-waste-rooms" style="color:var(--orange);">0</div>
+          <div class="stat-sub">Rooms triggering rules</div>
+        </div>
+      </div>
+
+      <!-- Per-Classroom Bar Chart -->
+      <div class="section-card">
+        <div class="section-header">
+          <div class="section-title">Classroom Power Load vs. Waste Breakdown</div>
+          <div style="display:flex;gap:12px;font-size:11px;">
+            <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;background:var(--primary);border-radius:2px;"></span> Productive Load</span>
+            <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;background:var(--red);border-radius:2px;"></span> Wasted Load</span>
+          </div>
+        </div>
+        <div id="analytics-bars-container" style="display:flex;flex-direction:column;gap:12px;padding:8px 0;">
+          <!-- Dynamically populated bars -->
+        </div>
+      </div>
+
+      <!-- Appliance Energy Ratings Reference Card -->
+      <div class="section-card">
+        <div class="section-header">
+          <div class="section-title">Appliance Load Telemetry Reference</div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(3, 1fr);gap:14px;">
+          <div style="background:#0a1220;border:1px solid var(--border);border-radius:8px;padding:12px;">
+            <div style="font-size:20px;margin-bottom:6px;">💡</div>
+            <div style="font-weight:600;font-size:13px;color:#fff;">Lighting Circuit</div>
+            <div style="color:var(--orange);font-weight:700;font-size:16px;margin:4px 0;" class="mono">120 Watts</div>
+            <div style="color:var(--text-sub);font-size:10px;">LED Array per standard classroom</div>
+          </div>
+          <div style="background:#0a1220;border:1px solid var(--border);border-radius:8px;padding:12px;">
+            <div style="font-size:20px;margin-bottom:6px;">🌀</div>
+            <div style="font-weight:600;font-size:13px;color:#fff;">Ceiling Fans</div>
+            <div style="color:var(--orange);font-weight:700;font-size:16px;margin:4px 0;" class="mono">80 Watts</div>
+            <div style="color:var(--text-sub);font-size:10px;">Dual high-efficiency circulation fans</div>
+          </div>
+          <div style="background:#0a1220;border:1px solid var(--border);border-radius:8px;padding:12px;">
+            <div style="font-size:20px;margin-bottom:6px;">📽</div>
+            <div style="font-weight:600;font-size:13px;color:#fff;">Smart Projector</div>
+            <div style="color:var(--orange);font-weight:700;font-size:16px;margin:4px 0;" class="mono">200 Watts</div>
+            <div style="color:var(--text-sub);font-size:10px;">Interactive laser display unit</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== PAGE: ALERTS ==================== -->
+    <section id="page-alerts" class="page-view">
+      <div class="section-header" style="margin-bottom:16px;">
+        <div>
+          <div class="section-title" style="font-size:17px;">Energy Waste Alerts</div>
+          <div style="font-size:11px;color:var(--text-muted);">Real-time notifications generated when empty rooms consume electrical power</div>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-secondary" onclick="clearAllAlerts()">Clear Alerts</button>
+          <button class="btn btn-danger" onclick="turnOffAllWasted()">Turn Off All Wasted</button>
+        </div>
+      </div>
+
+      <div id="alerts-list-container">
+        <!-- Dynamically rendered alert cards -->
+      </div>
+    </section>
+
+    <!-- ==================== PAGE: SETTINGS ==================== -->
+    <section id="page-settings" class="page-view">
+      <div class="section-card">
+        <div class="section-header">
+          <div class="section-title">VOLT IQ System Specifications</div>
+          <span class="badge badge-normal">Active Configuration</span>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(2, 1fr);gap:12px;margin-bottom:20px;">
+          <div style="padding:10px 14px;background:#0b1424;border:1px solid var(--border);border-radius:6px;">
+            <div style="font-size:10px;color:var(--text-sub);text-transform:uppercase;">Current Stage</div>
+            <div style="font-size:13px;font-weight:600;color:#fff;margin-top:2px;">Developing</div>
+          </div>
+          <div style="padding:10px 14px;background:#0b1424;border:1px solid var(--border);border-radius:6px;">
+            <div style="font-size:10px;color:var(--text-sub);text-transform:uppercase;">AI Technique</div>
+            <div style="font-size:13px;font-weight:600;color:#fff;margin-top:2px;">Computer Vision</div>
+          </div>
+          <div style="padding:10px 14px;background:#0b1424;border:1px solid var(--border);border-radius:6px;">
+            <div style="font-size:10px;color:var(--text-sub);text-transform:uppercase;">Object Detection</div>
+            <div style="font-size:13px;font-weight:600;color:#fff;margin-top:2px;">COCO-SSD (TensorFlow.js)</div>
+          </div>
+          <div style="padding:10px 14px;background:#0b1424;border:1px solid var(--border);border-radius:6px;">
+            <div style="font-size:10px;color:var(--text-sub);text-transform:uppercase;">Appliance Detection</div>
+            <div style="font-size:13px;font-weight:600;color:#fff;margin-top:2px;">Current Sensors (IoT Telemetry)</div>
+          </div>
+          <div style="padding:10px 14px;background:#0b1424;border:1px solid var(--border);border-radius:6px;">
+            <div style="font-size:10px;color:var(--text-sub);text-transform:uppercase;">Decision Engine</div>
+            <div style="font-size:13px;font-weight:600;color:#fff;margin-top:2px;">Rule Engine (Occupancy &times; Load)</div>
+          </div>
+          <div style="padding:10px 14px;background:#0b1424;border:1px solid var(--border);border-radius:6px;">
+            <div style="font-size:10px;color:var(--text-sub);text-transform:uppercase;">Camera Interface</div>
+            <div style="font-size:13px;font-weight:600;color:#fff;margin-top:2px;">Web Camera API (getUserMedia)</div>
+          </div>
+        </div>
+
+        <div class="section-title" style="margin-bottom:12px;">Appliance Wattage Calibration</div>
+        <div style="display:grid;grid-template-columns:repeat(3, 1fr);gap:14px;margin-bottom:20px;">
+          <div>
+            <label style="font-size:11px;color:var(--text-sub);display:block;margin-bottom:4px;">Light Array (Watts)</label>
+            <input type="number" id="setting-watt-light" value="120" style="width:100%;padding:8px 10px;background:#0b1424;border:1px solid var(--border-bright);border-radius:6px;color:#fff;font-family:monospace;" />
+          </div>
+          <div>
+            <label style="font-size:11px;color:var(--text-sub);display:block;margin-bottom:4px;">Circulation Fans (Watts)</label>
+            <input type="number" id="setting-watt-fan" value="80" style="width:100%;padding:8px 10px;background:#0b1424;border:1px solid var(--border-bright);border-radius:6px;color:#fff;font-family:monospace;" />
+          </div>
+          <div>
+            <label style="font-size:11px;color:var(--text-sub);display:block;margin-bottom:4px;">Projector System (Watts)</label>
+            <input type="number" id="setting-watt-proj" value="200" style="width:100%;padding:8px 10px;background:#0b1424;border:1px solid var(--border-bright);border-radius:6px;color:#fff;font-family:monospace;" />
+          </div>
+        </div>
+
+        <div style="display:flex;gap:10px;">
+          <button class="btn btn-primary" onclick="saveSettings()">Save Configuration</button>
+          <button class="btn btn-secondary" onclick="resetDemoData()">Reset All Demo Data</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Add Classroom Modal -->
+    <div id="add-classroom-modal" class="modal-overlay" style="display:none;" onclick="if(event.target===this) closeAddClassroomModal()">
+      <div class="modal-card">
+        <div class="modal-header">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span style="font-size:18px;">➕</span>
+            <div>
+              <h3 style="margin:0;font-size:15px;font-weight:600;color:#fff;">Add New Classroom</h3>
+              <div style="font-size:10px;color:var(--text-sub);">Register a facility into VOLT IQ energy monitoring</div>
+            </div>
+          </div>
+          <button class="modal-close-btn" onclick="closeAddClassroomModal()">&times;</button>
+        </div>
+        <form id="add-classroom-form" onsubmit="handleCreateClassroom(event)">
+          <div class="form-group">
+            <label for="new-room-name">Classroom Name / Number *</label>
+            <input type="text" id="new-room-name" placeholder="e.g. Room 107, Physics Lab 202" required class="form-control" />
+          </div>
+          <div class="form-group">
+            <label for="new-room-location">Location / Campus Wing *</label>
+            <input type="text" id="new-room-location" placeholder="e.g. Science Block (3rd Floor)" required class="form-control" />
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div class="form-group">
+              <label for="new-room-people">Initial Occupancy (People)</label>
+              <input type="number" id="new-room-people" min="0" max="150" value="0" class="form-control" />
+              <small style="color:var(--text-muted);font-size:10px;margin-top:3px;display:block;">0 = Empty classroom</small>
+            </div>
+            <div class="form-group">
+              <label for="new-room-cam-id">Camera Stream ID</label>
+              <input type="text" id="new-room-cam-id" placeholder="e.g. CAM-107" class="form-control" />
+              <small style="color:var(--text-muted);font-size:10px;margin-top:3px;display:block;">Surveillance camera channel</small>
+            </div>
+          </div>
+          <div class="form-group" style="background:#09111e;border:1px solid var(--border);border-radius:8px;padding:12px;">
+            <label style="margin-bottom:8px;display:block;">Initial Appliance Sensor Status:</label>
+            <div style="display:flex;gap:14px;flex-wrap:wrap;">
+              <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;color:#fff;">
+                <input type="checkbox" id="new-room-light" style="accent-color:var(--primary);width:15px;height:15px;" />
+                <span>💡 Light (<strong style="color:var(--orange);">120W</strong>)</span>
+              </label>
+              <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;color:#fff;">
+                <input type="checkbox" id="new-room-fan" style="accent-color:var(--primary);width:15px;height:15px;" />
+                <span>🌀 Fan (<strong style="color:var(--orange);">80W</strong>)</span>
+              </label>
+              <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;color:#fff;">
+                <input type="checkbox" id="new-room-projector" style="accent-color:var(--primary);width:15px;height:15px;" />
+                <span>📽 Projector (<strong style="color:var(--orange);">200W</strong>)</span>
+              </label>
+            </div>
+            <div style="font-size:10px;color:var(--text-sub);margin-top:8px;">
+              * If classroom is EMPTY and appliances are turned ON, VOLT IQ will automatically trigger an Energy Waste alert.
+            </div>
+          </div>
+          <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:16px;padding-top:14px;border-top:1px solid var(--border);">
+            <button type="button" class="btn btn-secondary" onclick="closeAddClassroomModal()">Cancel</button>
+            <button type="submit" class="btn btn-primary" style="padding:7px 16px;">Create Classroom</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Confirm Delete Modal (Bypasses iframe window.confirm restriction) -->
+    <div id="confirm-delete-modal" class="modal-overlay" style="display:none;" onclick="if(event.target===this) closeDeleteModal()">
+      <div class="modal-card" style="max-width:430px;">
+        <div class="modal-header">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span style="font-size:18px;">🗑️</span>
+            <div>
+              <h3 style="margin:0;font-size:15px;font-weight:600;color:var(--red);">Delete Classroom</h3>
+              <div style="font-size:10px;color:var(--text-sub);">Permanent facility removal</div>
+            </div>
+          </div>
+          <button class="modal-close-btn" onclick="closeDeleteModal()">&times;</button>
+        </div>
+        <div style="padding:20px;">
+          <p id="delete-modal-msg" style="font-size:13px;color:#fff;margin-bottom:12px;line-height:1.5;">
+            Are you sure you want to remove this classroom?
+          </p>
+          <div style="font-size:11px;color:var(--text-muted);background:#09101c;border:1px solid var(--border);border-radius:6px;padding:10px;margin-bottom:18px;line-height:1.4;">
+            ⚠ This action will immediately remove its surveillance telemetry, live camera card, and any associated energy alerts from VOLT IQ.
+          </div>
+          <div style="display:flex;justify-content:flex-end;gap:10px;">
+            <button type="button" class="btn btn-secondary" onclick="closeDeleteModal()">Cancel</button>
+            <button type="button" class="btn btn-danger" onclick="executeDeleteClassroom()" style="padding:7px 16px;">
+              Delete Classroom
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast Notification Banner -->
+    <div id="voltiq-toast" style="position:fixed;bottom:24px;right:24px;z-index:9999;background:var(--bg-card);border:1px solid var(--border-bright);border-radius:8px;padding:12px 18px;color:#fff;font-size:12px;display:none;box-shadow:0 10px 30px rgba(0,0,0,0.7);align-items:center;gap:10px;max-width:380px;animation:modalFadeIn 0.2s ease;">
+      <span id="voltiq-toast-icon" style="font-size:16px;">ℹ️</span>
+      <span id="voltiq-toast-text" style="line-height:1.4;">Notification</span>
+    </div>
+
+  </main>
+
+  <script>
+    /* ==========================================================================
+       DATA
+       ========================================================================== */
+    const WATT_LIGHT = 120;
+    const WATT_FAN = 80;
+    const WATT_PROJECTOR = 200;
+
+    const initialClassrooms = [
+      { id: '101', name: 'Room 101', location: 'Science Lab (East Wing)', people: 0, occupancy: 'EMPTY', light: true, fan: true, projector: false, cameraStatus: 'LIVE', isWebcamAssigned: true },
+      { id: '102', name: 'Room 102', location: 'Math Hall (West Wing)', people: 0, occupancy: 'EMPTY', light: false, fan: false, projector: false, cameraStatus: 'READY', isWebcamAssigned: false },
+      { id: '103', name: 'Room 103', location: 'Computer Lab (Central)', people: 4, occupancy: 'OCCUPIED', light: true, fan: true, projector: true, cameraStatus: 'READY', isWebcamAssigned: false },
+      { id: '104', name: 'Room 104', location: 'Lecture Hall A (1st Fl)', people: 0, occupancy: 'EMPTY', light: true, fan: false, projector: false, cameraStatus: 'READY', isWebcamAssigned: false },
+      { id: '105', name: 'Room 105', location: 'Physics Wing (2nd Fl)', people: 0, occupancy: 'EMPTY', light: false, fan: true, projector: false, cameraStatus: 'READY', isWebcamAssigned: false },
+      { id: '106', name: 'Room 106', location: 'Seminar Room (3rd Fl)', people: 0, occupancy: 'EMPTY', light: false, fan: false, projector: false, cameraStatus: 'READY', isWebcamAssigned: false },
+    ];
+
+    let classrooms = [];
+    let alerts = [];
+    let selectedRoomId = '101';
+    let assignedWebcamRoomId = '101';
+    let cocoModel = null;
+    let isModelLoading = false;
+    let isAIDetecting = false;
+    let localStream = null;
+    let detectionInterval = null;
+    let simulatedCrowdMode = false;
+
+    function loadPersistedData() {
+      try {
+        const savedRooms = localStorage.getItem('voltiq_rooms');
+        classrooms = savedRooms ? JSON.parse(savedRooms) : JSON.parse(JSON.stringify(initialClassrooms));
+        const savedAlerts = localStorage.getItem('voltiq_alerts');
+        alerts = savedAlerts ? JSON.parse(savedAlerts) : [];
+        const savedTarget = localStorage.getItem('voltiq_assigned_cam');
+        if (savedTarget) assignedWebcamRoomId = savedTarget;
+      } catch (e) {
+        classrooms = JSON.parse(JSON.stringify(initialClassrooms));
+        alerts = [];
+      }
+    }
+
+    function persistData() {
+      try {
+        localStorage.setItem('voltiq_rooms', JSON.stringify(classrooms));
+        localStorage.setItem('voltiq_alerts', JSON.stringify(alerts));
+        localStorage.setItem('voltiq_assigned_cam', assignedWebcamRoomId);
+      } catch (e) {}
+    }
+
+    /* ==========================================================================
+       NAVIGATION
+       ========================================================================== */
+    function switchPage(pageId) {
+      document.querySelectorAll('.page-view').forEach(el => el.classList.remove('active'));
+      const targetPage = document.getElementById('page-' + pageId);
+      if (targetPage) targetPage.classList.add('active');
+
+      document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+      const navItem = Array.from(document.querySelectorAll('.nav-item')).find(el => {
+        const txt = el.textContent.toLowerCase();
+        if (pageId === 'dashboard' && txt.includes('dashboard')) return true;
+        if (pageId === 'cameras' && txt.includes('classroom cameras')) return true;
+        if (pageId === 'analytics' && txt.includes('energy analytics')) return true;
+        if (pageId === 'alerts' && txt.includes('alerts')) return true;
+        if (pageId === 'ai' && txt.includes('ai detection')) return true;
+        if (pageId === 'settings' && txt.includes('settings')) return true;
+        return false;
+      });
+      if (navItem) navItem.classList.add('active');
+
+      const headings = {
+        dashboard: ['Energy Monitoring Dashboard', 'Smart classroom energy monitoring and automated waste detection'],
+        cameras: ['Classroom Camera Monitoring', 'Real-time multi-classroom surveillance and occupancy telemetry'],
+        analytics: ['Energy Analytics', 'Electrical consumption, wasted load telemetry, and efficiency ratings'],
+        alerts: ['Energy Waste Alerts', 'Real-time notifications for automated energy conservation'],
+        ai: ['AI Detection', 'Computer vision based classroom occupancy analysis'],
+        settings: ['System Settings', 'VOLT IQ engine configuration, sensory parameters, and calibration']
+      };
+      if (headings[pageId]) {
+        document.getElementById('page-heading').textContent = headings[pageId][0];
+        document.getElementById('page-subheading').textContent = headings[pageId][1];
+      }
+
+      if (window.innerWidth <= 768) {
+        document.getElementById('sidebar').classList.remove('open');
+      }
+
+      if (pageId === 'ai') {
+        syncAIPageWithSelectedRoom();
+      }
+      renderAllViews();
+    }
+
+    function toggleSidebar() {
+      document.getElementById('sidebar').classList.toggle('open');
+    }
+
+    /* ==========================================================================
+       DECISION ENGINE
+       ========================================================================== */
+    function evaluateRoomDecision(room) {
+      const isOccupied = room.people > 0;
+      room.occupancy = isOccupied ? 'OCCUPIED' : 'EMPTY';
+
+      const activeAppliances = [];
+      let activeWatts = 0;
+      if (room.light) { activeAppliances.push('Light'); activeWatts += WATT_LIGHT; }
+      if (room.fan) { activeAppliances.push('Fan'); activeWatts += WATT_FAN; }
+      if (room.projector) { activeAppliances.push('Projector'); activeWatts += WATT_PROJECTOR; }
+
+      let isWaste = false;
+      let reason = '';
+      let wasteWatts = 0;
+
+      if (!isOccupied && activeAppliances.length > 0) {
+        isWaste = true;
+        wasteWatts = activeWatts;
+        reason = activeAppliances.join(' and ') + ' are ON while classroom is empty.';
+      } else if (isOccupied) {
+        isWaste = false;
+        reason = 'Classroom occupied; appliance load is justified.';
+      } else {
+        isWaste = false;
+        reason = 'Classroom empty and appliances are switched OFF (idle).';
+      }
+
+      return {
+        isWaste,
+        reason,
+        activeAppliances,
+        activeWatts,
+        wasteWatts
+      };
+    }
+
+    function runGlobalDecisionEngine() {
+      let totalWasteWatts = 0;
+      let wasteCount = 0;
+
+      classrooms.forEach(room => {
+        const dec = evaluateRoomDecision(room);
+        if (dec.isWaste) {
+          wasteCount++;
+          totalWasteWatts += dec.wasteWatts;
+          const existing = alerts.find(a => a.roomId === room.id && a.active);
+          if (!existing) {
+            alerts.unshift({
+              id: 'ALT-' + Date.now() + '-' + room.id,
+              roomId: room.id,
+              roomName: room.name,
+              reason: dec.reason,
+              watts: dec.wasteWatts,
+              timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+              active: true
+            });
+          }
+        } else {
+          alerts.forEach(a => {
+            if (a.roomId === room.id && a.active) a.active = false;
+          });
+        }
+      });
+
+      persistData();
+      updateSidebarAlertBadge();
+    }
+
+    function updateSidebarAlertBadge() {
+      const activeAlerts = alerts.filter(a => a.active);
+      const badge = document.getElementById('nav-alert-badge');
+      if (activeAlerts.length > 0) {
+        badge.textContent = activeAlerts.length;
+        badge.style.display = 'inline-block';
+      } else {
+        badge.style.display = 'none';
+      }
+    }
+
+    /* ==========================================================================
+       DASHBOARD
+       ========================================================================== */
+    function renderDashboard() {
+      let occupiedCount = 0;
+      let emptyCount = 0;
+      let wasteAlertCount = 0;
+      let totalWasteLoad = 0;
+
+      const tbody = document.getElementById('dashboard-classroom-rows');
+      tbody.innerHTML = '';
+
+      classrooms.forEach(room => {
+        const dec = evaluateRoomDecision(room);
+        if (room.occupancy === 'OCCUPIED') occupiedCount++;
+        else emptyCount++;
+
+        if (dec.isWaste) {
+          wasteAlertCount++;
+          totalWasteLoad += dec.wasteWatts;
+        }
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>
+            <strong style="color:#fff;">${room.name}</strong>
+          </td>
+          <td style="color:var(--text-muted);">${room.location}</td>
+          <td>
+            <span class="badge ${room.occupancy === 'OCCUPIED' ? 'badge-occupied' : 'badge-empty'}">
+              ${room.occupancy}
+            </span>
+          </td>
+          <td class="mono" style="font-weight:600;">${room.people}</td>
+          <td>
+            <span style="font-size:11px;color:${dec.activeAppliances.length > 0 ? 'var(--orange)' : 'var(--text-sub)'}">
+              ${dec.activeAppliances.length > 0 ? dec.activeAppliances.join(', ') : 'All Off'}
+            </span>
+          </td>
+          <td class="mono" style="font-weight:700;">${dec.activeWatts} W</td>
+          <td>
+            <span class="badge ${dec.isWaste ? 'badge-waste' : 'badge-normal'}">
+              ${dec.isWaste ? '⚠ WASTE' : '✓ NORMAL'}
+            </span>
+          </td>
+          <td>
+            <div style="display:flex;gap:6px;align-items:center;">
+              <button class="btn btn-secondary" style="padding:3px 8px;font-size:10px;" onclick="goToCamera('${room.id}')">View</button>
+              <button class="btn btn-primary" style="padding:3px 8px;font-size:10px;" onclick="goToAIDetection('${room.id}')">AI</button>
+              <button class="btn btn-secondary" style="padding:3px 8px;font-size:10px;color:var(--red);border-color:rgba(255,99,120,0.4);" title="Delete ${room.name}" onclick="event.stopPropagation(); deleteClassroom('${room.id}')">✕ Delete</button>
+            </div>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      document.getElementById('stat-total-rooms').textContent = classrooms.length;
+      document.getElementById('stat-occupied-rooms').textContent = occupiedCount;
+      document.getElementById('stat-empty-rooms').textContent = emptyCount;
+      document.getElementById('stat-waste-alerts').textContent = wasteAlertCount;
+      document.getElementById('stat-waste-load-sub').textContent = totalWasteLoad + ' W wasted load';
+
+      const banner = document.getElementById('live-waste-banner');
+      if (wasteAlertCount > 0) {
+        banner.style.display = 'block';
+        document.getElementById('waste-banner-text').textContent =
+          `${wasteAlertCount} empty classroom${wasteAlertCount > 1 ? 's are' : ' is'} drawing ${totalWasteLoad} W of unnecessary energy.`;
+      } else {
+        banner.style.display = 'none';
+      }
+    }
+
+    /* ==========================================================================
+       CAMERA MONITORING
+       ========================================================================== */
+    function renderCamerasGrid() {
+      const container = document.getElementById('cameras-grid-container');
+      container.innerHTML = '';
+
+      classrooms.forEach(room => {
+        const dec = evaluateRoomDecision(room);
+        const isAssigned = (room.id === assignedWebcamRoomId);
+
+        const card = document.createElement('div');
+        card.className = `camera-card ${dec.isWaste ? 'waste-alert' : ''}`;
+        card.innerHTML = `
+          <div class="camera-header">
+            <div>
+              <strong style="color:#fff;font-size:13px;">${room.name}</strong>
+              <div style="font-size:9px;color:var(--text-sub);">${room.location}</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;">
+              <span class="badge ${isAssigned ? 'badge-normal' : 'badge-empty'}" style="font-size:9px;">
+                ${isAssigned ? '● LIVE' : 'READY'}
+              </span>
+            </div>
+          </div>
+
+          <div class="camera-preview" id="preview-box-${room.id}">
+            <div class="camera-overlay-hud">
+              <span>CAM-${room.id} &bull; 1080P 30FPS</span>
+              <span>${isAssigned ? 'ACTIVE WEBCAM' : 'SURVEILLANCE'}</span>
+            </div>
+            <!-- Canvas preview representation -->
+            <canvas id="cam-canvas-${room.id}" width="320" height="180" style="width:100%;height:100%;"></canvas>
+            ${dec.isWaste ? `
+              <div style="position:absolute;bottom:8px;left:8px;background:rgba(255,99,120,0.85);color:#fff;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;">
+                ⚠ ENERGY WASTE
+              </div>
+            ` : ''}
+          </div>
+
+          <div class="camera-body">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <span style="font-size:11px;color:var(--text-sub);">AI Status: <strong style="color:var(--primary-light);">ACTIVE</strong></span>
+              <span class="badge ${room.occupancy === 'OCCUPIED' ? 'badge-occupied' : 'badge-empty'}">
+                ${room.occupancy} (${room.people})
+              </span>
+            </div>
+
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <span style="font-size:11px;color:var(--text-sub);">Appliance State:</span>
+              <div class="appliance-chips">
+                <span class="appliance-chip ${room.light ? 'on' : ''}" onclick="toggleRoomAppliance('${room.id}', 'light')">
+                  💡 Light
+                </span>
+                <span class="appliance-chip ${room.fan ? 'on' : ''}" onclick="toggleRoomAppliance('${room.id}', 'fan')">
+                  🌀 Fan
+                </span>
+                <span class="appliance-chip ${room.projector ? 'on' : ''}" onclick="toggleRoomAppliance('${room.id}', 'projector')">
+                  📽 Proj
+                </span>
+              </div>
+            </div>
+
+            <div style="display:flex;justify-content:space-between;align-items:center;padding-top:6px;border-top:1px solid var(--border);">
+              <div>
+                <div style="font-size:9px;color:var(--text-sub);">DECISION</div>
+                <span class="badge ${dec.isWaste ? 'badge-waste' : 'badge-normal'}">
+                  ${dec.isWaste ? '⚠ ENERGY WASTE' : '✓ NORMAL'}
+                </span>
+              </div>
+              <div style="display:flex;gap:6px;align-items:center;">
+                <button class="btn btn-secondary" style="padding:4px 8px;font-size:10px;" onclick="assignWebcamTarget('${room.id}')">
+                  ${isAssigned ? 'Assigned' : 'Assign Cam'}
+                </button>
+                <button class="btn btn-primary" style="padding:4px 8px;font-size:10px;" onclick="goToAIDetection('${room.id}')">
+                  AI Analysis
+                </button>
+                <button class="btn btn-secondary" style="padding:4px 8px;font-size:10px;color:var(--red);border-color:rgba(255,99,120,0.4);" title="Delete ${room.name}" onclick="event.stopPropagation(); deleteClassroom('${room.id}')">
+                  🗑 Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+        container.appendChild(card);
+        drawCameraSimCanvas(room.id, room.people, room.light, dec.isWaste);
+      });
+    }
+
+    function drawCameraSimCanvas(roomId, peopleCount, isLightOn, isWaste) {
+      const canvas = document.getElementById(`cam-canvas-${roomId}`);
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      const w = canvas.width;
+      const h = canvas.height;
+
+      // Background room environment
+      ctx.fillStyle = isLightOn ? '#101c2e' : '#070b12';
+      ctx.fillRect(0, 0, w, h);
+
+      // Floor grid perspective
+      ctx.strokeStyle = isLightOn ? '#1a2b42' : '#0e1724';
+      ctx.lineWidth = 1;
+      for (let x = 0; x <= w; x += 40) {
+        ctx.beginPath();
+        ctx.moveTo(x, h * 0.4);
+        ctx.lineTo((x - w / 2) * 2 + w / 2, h);
+        ctx.stroke();
+      }
+
+      // Draw whiteboard/screen at back
+      ctx.fillStyle = '#1c2e47';
+      ctx.fillRect(w * 0.3, h * 0.15, w * 0.4, h * 0.35);
+      ctx.strokeStyle = '#2b4468';
+      ctx.strokeRect(w * 0.3, h * 0.15, w * 0.4, h * 0.35);
+
+      // Desks
+      ctx.fillStyle = '#152438';
+      ctx.fillRect(40, h * 0.65, 80, 20);
+      ctx.fillRect(200, h * 0.65, 80, 20);
+
+      // Draw people silhouettes if occupied
+      if (peopleCount > 0) {
+        for (let i = 0; i < Math.min(peopleCount, 4); i++) {
+          const px = 70 + i * 50;
+          const py = h * 0.58;
+
+          // Head
+          ctx.fillStyle = '#62a8ff';
+          ctx.beginPath();
+          ctx.arc(px, py, 10, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Body
+          ctx.beginPath();
+          ctx.ellipse(px, py + 22, 14, 16, 0, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Green AI detection box
+          ctx.strokeStyle = '#35d07f';
+          ctx.lineWidth = 1.5;
+          ctx.strokeRect(px - 16, py - 12, 32, 48);
+          ctx.fillStyle = '#35d07f';
+          ctx.font = '8px monospace';
+          ctx.fillText('person: 92%', px - 16, py - 14);
+        }
+      } else {
+        ctx.fillStyle = '#536885';
+        ctx.font = '10px Inter, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('ROOM EMPTY (0 Occupants)', w / 2, h * 0.85);
+        ctx.textAlign = 'start';
+      }
+    }
+
+    function assignWebcamTarget(roomId) {
+      assignedWebcamRoomId = roomId;
+      const targetSelect = document.getElementById('select-webcam-target');
+      if (targetSelect) targetSelect.value = roomId;
+      const room = classrooms.find(r => r.id === roomId);
+      const roomName = room ? room.name : `Room ${roomId}`;
+      document.getElementById('camera-binding-text').textContent =
+        `Physical Webcam feed mapped to ${roomName} (Camera ${roomId}). Real deployments support multi-IP camera streams.`;
+      runGlobalDecisionEngine();
+      renderAllViews();
+    }
+
+    function goToCamera(roomId) {
+      switchPage('cameras');
+    }
+
+    function goToAIDetection(roomId) {
+      selectAIRoom(roomId);
+      switchPage('ai');
+    }
+
+    /* ==========================================================================
+       AI DETECTION (TensorFlow.js + COCO-SSD + Camera)
+       ========================================================================== */
+    function selectAIRoom(roomId) {
+      selectedRoomId = roomId;
+      const aiSelect = document.getElementById('ai-room-select');
+      if (aiSelect) aiSelect.value = roomId;
+      syncAIPageWithSelectedRoom();
+    }
+
+    function syncAIPageWithSelectedRoom() {
+      const room = classrooms.find(r => r.id === selectedRoomId);
+      if (!room) return;
+
+      document.getElementById('ai-hud-room').textContent = room.name;
+      document.getElementById('ai-stream-name').textContent = `CAM-${room.id} (${room.location})`;
+      document.getElementById('ai-hud-people').textContent = room.people;
+
+      const occBadge = document.getElementById('ai-hud-occupancy');
+      occBadge.innerHTML = `<span class="badge ${room.occupancy === 'OCCUPIED' ? 'badge-occupied' : 'badge-empty'}">${room.occupancy}</span>`;
+
+      // Update toggle buttons
+      const btnLight = document.getElementById('btn-toggle-light');
+      btnLight.textContent = room.light ? 'ON' : 'OFF';
+      btnLight.className = `switch-btn ${room.light ? 'active-on' : 'active-off'}`;
+
+      const btnFan = document.getElementById('btn-toggle-fan');
+      btnFan.textContent = room.fan ? 'ON' : 'OFF';
+      btnFan.className = `switch-btn ${room.fan ? 'active-on' : 'active-off'}`;
+
+      const btnProj = document.getElementById('btn-toggle-proj');
+      btnProj.textContent = room.projector ? 'ON' : 'OFF';
+      btnProj.className = `switch-btn ${room.projector ? 'active-on' : 'active-off'}`;
+
+      const dec = evaluateRoomDecision(room);
+      document.getElementById('ai-active-watts').textContent = `${dec.activeWatts} W`;
+
+      const decBadge = document.getElementById('ai-card-decision-badge');
+      decBadge.className = `badge ${dec.isWaste ? 'badge-waste' : 'badge-normal'}`;
+      decBadge.textContent = dec.isWaste ? '⚠ ENERGY WASTE' : '✓ NORMAL';
+
+      document.getElementById('ai-rule-calc-text').innerHTML =
+        `Occupancy: <strong>${room.occupancy}</strong> (${room.people} people) &bull; Active Load: <strong>${dec.activeWatts} W</strong> (${dec.activeAppliances.length > 0 ? dec.activeAppliances.join(', ') : 'None'}).`;
+
+      const reasonEl = document.getElementById('ai-rule-reason-text');
+      if (dec.isWaste) {
+        reasonEl.style.display = 'block';
+        reasonEl.textContent = `⚠ ${dec.reason}`;
+      } else {
+        reasonEl.style.display = 'none';
+      }
+    }
+
+    async function loadCocoModel() {
+      if (cocoModel) return cocoModel;
+      if (isModelLoading) return null;
+      isModelLoading = true;
+      document.getElementById('ai-model-status').textContent = 'Loading COCO-SSD...';
+
+      try {
+        if (window.cocoSsd) {
+          cocoModel = await window.cocoSsd.load();
+          document.getElementById('ai-model-status').textContent = 'COCO-SSD Ready';
+        } else {
+          document.getElementById('ai-model-status').textContent = 'Model Library Fallback';
+        }
+      } catch (err) {
+        console.warn('COCO-SSD load error:', err);
+        document.getElementById('ai-model-status').textContent = 'Fallback Vision Engine';
+      } finally {
+        isModelLoading = false;
+      }
+      return cocoModel;
+    }
+
+    async function startAIDetection() {
+      await loadCocoModel();
+      const video = document.getElementById('ai-video');
+      const fallbackMsg = document.getElementById('ai-camera-fallback-msg');
+
+      try {
+        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+          localStream = await navigator.mediaDevices.getUserMedia({
+            video: { width: { ideal: 1280 }, height: { ideal: 720 } },
+            audio: false
+          });
+          video.srcObject = localStream;
+          video.style.display = 'block';
+          fallbackMsg.style.display = 'none';
+          await video.play();
+        } else {
+          throw new Error('Camera API unavailable');
+        }
+      } catch (err) {
+        console.warn('Camera error or permission denied:', err);
+        video.style.display = 'none';
+        fallbackMsg.style.display = 'block';
+        fallbackMsg.querySelector('div:nth-child(2)').textContent = 'Camera Permission / Device Required';
+      }
+
+      isAIDetecting = true;
+      document.getElementById('btn-start-ai').classList.remove('btn-primary');
+      document.getElementById('btn-start-ai').classList.add('btn-secondary');
+      document.getElementById('btn-stop-ai').classList.remove('btn-secondary');
+      document.getElementById('btn-stop-ai').classList.add('btn-primary');
+
+      if (detectionInterval) clearInterval(detectionInterval);
+      detectionInterval = setInterval(runInferenceCycle, 300);
+    }
+
+    function stopAIDetection() {
+      isAIDetecting = false;
+      if (detectionInterval) {
+        clearInterval(detectionInterval);
+        detectionInterval = null;
+      }
+      if (localStream) {
+        localStream.getTracks().forEach(track => track.stop());
+        localStream = null;
+      }
+      const video = document.getElementById('ai-video');
+      video.srcObject = null;
+
+      const canvas = document.getElementById('ai-canvas');
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      document.getElementById('btn-start-ai').classList.add('btn-primary');
+      document.getElementById('btn-start-ai').classList.remove('btn-secondary');
+      document.getElementById('btn-stop-ai').classList.add('btn-secondary');
+      document.getElementById('btn-stop-ai').classList.remove('btn-primary');
+      document.getElementById('ai-fps-stat').textContent = 'Inference: Stopped';
+    }
+
+    async function runInferenceCycle() {
+      if (!isAIDetecting) return;
+      const video = document.getElementById('ai-video');
+      const canvas = document.getElementById('ai-canvas');
+      if (!canvas) return;
+
+      const ctx = canvas.getContext('2d');
+      canvas.width = canvas.parentElement.clientWidth;
+      canvas.height = canvas.parentElement.clientHeight;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      const t0 = performance.now();
+      let personCount = 0;
+
+      // Real model inference if video is playing
+      if (cocoModel && video.readyState === 4 && localStream) {
+        try {
+          const predictions = await cocoModel.detect(video);
+          predictions.forEach(pred => {
+            if (pred.class === 'person') {
+              personCount++;
+              const [x, y, width, height] = pred.bbox;
+              const scaleX = canvas.width / video.videoWidth;
+              const scaleY = canvas.height / video.videoHeight;
+
+              const rx = x * scaleX;
+              const ry = y * scaleY;
+              const rw = width * scaleX;
+              const rh = height * scaleY;
+
+              ctx.strokeStyle = '#35d07f';
+              ctx.lineWidth = 2;
+              ctx.strokeRect(rx, ry, rw, rh);
+
+              ctx.fillStyle = '#35d07f';
+              ctx.fillRect(rx, ry - 18, 90, 18);
+              ctx.fillStyle = '#080d18';
+              ctx.font = '10px monospace';
+              ctx.fillText(`person ${Math.round(pred.score * 100)}%`, rx + 4, ry - 5);
+            }
+          });
+        } catch (e) {
+          console.warn('Inference frame error:', e);
+        }
+      } else {
+        // Fallback / simulated crowd rendering
+        if (simulatedCrowdMode) {
+          personCount = 2;
+          ctx.strokeStyle = '#35d07f';
+          ctx.lineWidth = 2;
+          ctx.strokeRect(canvas.width * 0.3, canvas.height * 0.3, 110, 180);
+          ctx.fillStyle = '#35d07f';
+          ctx.fillRect(canvas.width * 0.3, canvas.height * 0.3 - 18, 95, 18);
+          ctx.fillStyle = '#080d18';
+          ctx.font = '10px monospace';
+          ctx.fillText('person: 94%', canvas.width * 0.3 + 4, canvas.height * 0.3 - 5);
+
+          ctx.strokeStyle = '#35d07f';
+          ctx.strokeRect(canvas.width * 0.6, canvas.height * 0.35, 100, 160);
+          ctx.fillRect(canvas.width * 0.6, canvas.height * 0.35 - 18, 95, 18);
+          ctx.fillStyle = '#080d18';
+          ctx.fillText('person: 88%', canvas.width * 0.6 + 4, canvas.height * 0.35 - 5);
+        } else {
+          personCount = 0;
+        }
+      }
+
+      const t1 = performance.now();
+      const fps = Math.round(1000 / (t1 - t0 || 1));
+      document.getElementById('ai-fps-stat').textContent = `Inference: ${Math.round(t1 - t0)}ms (${fps} FPS)`;
+
+      // Dynamically update selected room
+      const room = classrooms.find(r => r.id === selectedRoomId);
+      if (room) {
+        room.people = personCount;
+        evaluateRoomDecision(room);
+        runGlobalDecisionEngine();
+        syncAIPageWithSelectedRoom();
+      }
+    }
+
+    function toggleSimulatedDetection() {
+      simulatedCrowdMode = !simulatedCrowdMode;
+      const room = classrooms.find(r => r.id === selectedRoomId);
+      if (room) {
+        room.people = simulatedCrowdMode ? 3 : 0;
+        runGlobalDecisionEngine();
+        syncAIPageWithSelectedRoom();
+        renderAllViews();
+      }
+      document.getElementById('btn-simulate-feed').textContent =
+        simulatedCrowdMode ? '🚪 Make Room Empty (0)' : '👥 Toggle Test Crowd (+Person)';
+    }
+
+    /* ==========================================================================
+       APPLIANCE SENSOR
+       ========================================================================== */
+    function toggleAppliance(type) {
+      const room = classrooms.find(r => r.id === selectedRoomId);
+      if (!room) return;
+      room[type] = !room[type];
+      runGlobalDecisionEngine();
+      syncAIPageWithSelectedRoom();
+      renderAllViews();
+    }
+
+    function toggleRoomAppliance(roomId, type) {
+      const room = classrooms.find(r => r.id === roomId);
+      if (!room) return;
+      room[type] = !room[type];
+      runGlobalDecisionEngine();
+      renderAllViews();
+      if (selectedRoomId === roomId) {
+        syncAIPageWithSelectedRoom();
+      }
+    }
+
+    /* ==========================================================================
+       ALERTS
+       ========================================================================== */
+    function renderAlerts() {
+      const container = document.getElementById('alerts-list-container');
+      container.innerHTML = '';
+
+      const activeAlerts = alerts.filter(a => a.active);
+      if (activeAlerts.length === 0) {
+        container.innerHTML = `
+          <div class="section-card" style="text-align:center;padding:32px 20px;">
+            <div style="font-size:32px;margin-bottom:8px;">✅</div>
+            <div style="font-size:14px;font-weight:700;color:#fff;">No Active Energy Waste Detected</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">
+              All empty classrooms have electrical appliances turned off. System is operating at peak energy efficiency.
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      activeAlerts.forEach(alt => {
+        const card = document.createElement('div');
+        card.className = 'alert-card';
+        card.innerHTML = `
+          <div style="display:flex;align-items:center;gap:12px;">
+            <div class="alert-icon-box">⚠️</div>
+            <div>
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:2px;">
+                <strong style="color:#fff;font-size:14px;">${alt.roomName}</strong>
+                <span class="badge badge-waste">ACTIVE WASTE</span>
+              </div>
+              <div style="font-size:12px;color:var(--text-main);">${alt.reason}</div>
+              <div style="font-size:10px;color:var(--text-sub);margin-top:4px;">
+                Detected at ${alt.timestamp} &bull; Room Status: EMPTY
+              </div>
+            </div>
+          </div>
+
+          <div style="text-align:right;flex-shrink:0;">
+            <div style="font-size:10px;color:var(--text-sub);text-transform:uppercase;">Estimated Wasted Load</div>
+            <div class="mono" style="font-size:18px;font-weight:700;color:var(--red);">${alt.watts} W</div>
+            <button class="btn btn-danger" style="margin-top:6px;padding:4px 10px;font-size:10px;" onclick="resolveWasteForRoom('${alt.roomId}')">
+              Turn Off Appliances
+            </button>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function resolveWasteForRoom(roomId) {
+      const room = classrooms.find(r => r.id === roomId);
+      if (room) {
+        room.light = false;
+        room.fan = false;
+        room.projector = false;
+      }
+      runGlobalDecisionEngine();
+      renderAllViews();
+    }
+
+    function turnOffAllWasted() {
+      classrooms.forEach(room => {
+        if (room.people === 0) {
+          room.light = false;
+          room.fan = false;
+          room.projector = false;
+        }
+      });
+      runGlobalDecisionEngine();
+      renderAllViews();
+    }
+
+    function clearAllAlerts() {
+      alerts.forEach(a => a.active = false);
+      persistData();
+      renderAllViews();
+      updateSidebarAlertBadge();
+    }
+
+    /* ==========================================================================
+       ANALYTICS
+       ========================================================================== */
+    function renderAnalytics() {
+      let totalLoad = 0;
+      let totalWaste = 0;
+      let wasteRoomsCount = 0;
+
+      const barsContainer = document.getElementById('analytics-bars-container');
+      barsContainer.innerHTML = '';
+
+      classrooms.forEach(room => {
+        const dec = evaluateRoomDecision(room);
+        totalLoad += dec.activeWatts;
+        totalWaste += dec.wasteWatts;
+        if (dec.isWaste) wasteRoomsCount++;
+
+        const productiveLoad = dec.activeWatts - dec.wasteWatts;
+        const maxScale = 400; // max possible wattage in room (120+80+200)
+
+        const prodWidth = (productiveLoad / maxScale) * 100;
+        const wasteWidth = (dec.wasteWatts / maxScale) * 100;
+
+        const row = document.createElement('div');
+        row.style.display = 'grid';
+        row.style.gridTemplateColumns = '90px 1fr 90px';
+        row.style.alignItems = 'center';
+        row.style.gap = '12px';
+        row.innerHTML = `
+          <div>
+            <strong style="color:#fff;">${room.name}</strong>
+            <div style="font-size:9px;color:var(--text-sub);">${room.occupancy}</div>
+          </div>
+          <div>
+            <div style="background:#09101c;height:20px;border-radius:4px;overflow:hidden;display:flex;border:1px solid var(--border);">
+              <div style="background:var(--primary);width:${prodWidth}%;height:100%;" title="Productive: ${productiveLoad}W"></div>
+              <div style="background:var(--red);width:${wasteWidth}%;height:100%;" title="Waste: ${dec.wasteWatts}W"></div>
+            </div>
+          </div>
+          <div style="text-align:right;">
+            <div class="mono" style="font-weight:700;color:${dec.isWaste ? 'var(--red)' : '#fff'};font-size:12px;">
+              ${dec.activeWatts} W
+            </div>
+            <div style="font-size:9px;color:var(--text-sub);">
+              ${dec.isWaste ? `${dec.wasteWatts}W Waste` : 'Normal'}
+            </div>
+          </div>
+        `;
+        barsContainer.appendChild(row);
+      });
+
+      document.getElementById('analytics-total-load').textContent = `${totalLoad} W`;
+      document.getElementById('analytics-waste-load').textContent = `${totalWaste} W`;
+      document.getElementById('analytics-waste-rooms').textContent = wasteRoomsCount;
+
+      const roomsSub = document.getElementById('analytics-rooms-sub');
+      if (roomsSub) {
+        roomsSub.textContent = `Across ${classrooms.length} monitored facilities`;
+      }
+
+      const wastePct = totalLoad > 0 ? Math.round((totalWaste / totalLoad) * 100) : 0;
+      document.getElementById('analytics-waste-pct').textContent = `${wastePct}% of active power is wasted`;
+    }
+
+    /* ==========================================================================
+       TOAST NOTIFICATIONS (Iframe & sandbox safe)
+       ========================================================================== */
+    let toastTimeout = null;
+    function showToast(msg, type = 'info') {
+      const toast = document.getElementById('voltiq-toast');
+      const icon = document.getElementById('voltiq-toast-icon');
+      const text = document.getElementById('voltiq-toast-text');
+      if (!toast) return;
+
+      if (type === 'success') {
+        icon.textContent = '✅';
+        toast.style.borderColor = 'var(--green)';
+      } else if (type === 'error' || type === 'danger') {
+        icon.textContent = '⚠️';
+        toast.style.borderColor = 'var(--red)';
+      } else if (type === 'warning') {
+        icon.textContent = '🔔';
+        toast.style.borderColor = 'var(--orange)';
+      } else {
+        icon.textContent = 'ℹ️';
+        toast.style.borderColor = 'var(--primary)';
+      }
+
+      text.textContent = msg;
+      toast.style.display = 'flex';
+
+      if (toastTimeout) clearTimeout(toastTimeout);
+      toastTimeout = setTimeout(() => {
+        toast.style.display = 'none';
+      }, 4000);
+    }
+
+    /* ==========================================================================
+       SETTINGS
+       ========================================================================== */
+    function saveSettings() {
+      showToast('VOLT IQ system configuration saved successfully.', 'success');
+    }
+
+    function resetDemoData() {
+      localStorage.removeItem('voltiq_rooms');
+      localStorage.removeItem('voltiq_alerts');
+      localStorage.removeItem('voltiq_assigned_cam');
+      classrooms = JSON.parse(JSON.stringify(initialClassrooms));
+      alerts = [];
+      assignedWebcamRoomId = '101';
+      selectedRoomId = '101';
+      populateRoomSelects();
+      runGlobalDecisionEngine();
+      renderAllViews();
+      showToast('VOLT IQ demo data has been reset to default baseline.', 'info');
+    }
+
+    /* ==========================================================================
+       CLASSROOM MANAGEMENT (Add & Delete)
+       ========================================================================== */
+    let pendingDeleteRoomId = null;
+
+    function populateRoomSelects() {
+      const webcamSelect = document.getElementById('select-webcam-target');
+      const aiSelect = document.getElementById('ai-room-select');
+
+      if (webcamSelect) {
+        webcamSelect.innerHTML = classrooms.map(r =>
+          `<option value="${r.id}" ${r.id === assignedWebcamRoomId ? 'selected' : ''}>${r.name}</option>`
+        ).join('');
+      }
+
+      if (aiSelect) {
+        aiSelect.innerHTML = classrooms.map(r =>
+          `<option value="${r.id}" ${r.id === selectedRoomId ? 'selected' : ''}>${r.name} (${r.location})</option>`
+        ).join('');
+      }
+    }
+
+    function openAddClassroomModal() {
+      // Auto-suggest next room number based on existing numerical rooms
+      let nextNum = 101;
+      const numMatches = classrooms.map(r => {
+        const m = r.name.match(/\d+/);
+        return m ? parseInt(m[0], 10) : null;
+      }).filter(n => n !== null);
+      if (numMatches.length > 0) {
+        nextNum = Math.max(...numMatches) + 1;
+      }
+
+      document.getElementById('new-room-name').value = `Room ${nextNum}`;
+      document.getElementById('new-room-location').value = '';
+      document.getElementById('new-room-people').value = 0;
+      document.getElementById('new-room-cam-id').value = `CAM-${nextNum}`;
+      document.getElementById('new-room-light').checked = false;
+      document.getElementById('new-room-fan').checked = false;
+      document.getElementById('new-room-projector').checked = false;
+
+      const modal = document.getElementById('add-classroom-modal');
+      modal.style.display = 'flex';
+      setTimeout(() => document.getElementById('new-room-name').focus(), 60);
+    }
+
+    function closeAddClassroomModal() {
+      document.getElementById('add-classroom-modal').style.display = 'none';
+    }
+
+    function handleCreateClassroom(e) {
+      e.preventDefault();
+      const name = document.getElementById('new-room-name').value.trim();
+      const location = document.getElementById('new-room-location').value.trim() || 'Central Campus';
+      const people = parseInt(document.getElementById('new-room-people').value, 10) || 0;
+      const camIdInput = document.getElementById('new-room-cam-id').value.trim();
+      const light = document.getElementById('new-room-light').checked;
+      const fan = document.getElementById('new-room-fan').checked;
+      const projector = document.getElementById('new-room-projector').checked;
+
+      if (!name) {
+        showToast('Please enter a classroom name.', 'warning');
+        return;
+      }
+
+      // Generate a unique room ID
+      const nameDigits = name.replace(/\D/g, '');
+      const nameSlug = name.replace(/\s+/g, '').replace(/[^a-zA-Z0-9]/g, '');
+      let baseId = nameDigits || nameSlug.toLowerCase() || 'room_' + Date.now();
+      let uniqueId = baseId;
+      let counter = 1;
+      while (classrooms.some(r => r.id === uniqueId)) {
+        uniqueId = `${baseId}_${counter++}`;
+      }
+
+      const newRoom = {
+        id: uniqueId,
+        name: name,
+        location: location,
+        people: people,
+        occupancy: people > 0 ? 'OCCUPIED' : 'EMPTY',
+        light: light,
+        fan: fan,
+        projector: projector,
+        cameraStatus: 'READY',
+        isWebcamAssigned: false
+      };
+
+      classrooms.push(newRoom);
+      persistData();
+      populateRoomSelects();
+      runGlobalDecisionEngine();
+      renderAllViews();
+      closeAddClassroomModal();
+
+      const dec = evaluateRoomDecision(newRoom);
+      if (dec.isWaste) {
+        showToast(`Classroom "${name}" added. ⚠ Active energy waste detected.`, 'warning');
+      } else {
+        showToast(`Classroom "${name}" successfully registered in VOLT IQ.`, 'success');
+      }
+    }
+
+    function deleteClassroom(roomId) {
+      if (classrooms.length <= 1) {
+        showToast('Cannot remove the last classroom. At least one classroom must remain active.', 'warning');
+        return;
+      }
+      const room = classrooms.find(r => r.id === roomId);
+      const roomName = room ? room.name : `Room ${roomId}`;
+      pendingDeleteRoomId = roomId;
+
+      const msgEl = document.getElementById('delete-modal-msg');
+      if (msgEl) {
+        msgEl.innerHTML = `Are you sure you want to remove <strong style="color:#fff;">"${roomName}"</strong> from VOLT IQ?`;
+      }
+      const modal = document.getElementById('confirm-delete-modal');
+      if (modal) modal.style.display = 'flex';
+    }
+
+    function closeDeleteModal() {
+      const modal = document.getElementById('confirm-delete-modal');
+      if (modal) modal.style.display = 'none';
+      pendingDeleteRoomId = null;
+    }
+
+    function executeDeleteClassroom() {
+      if (!pendingDeleteRoomId) return;
+      const roomId = pendingDeleteRoomId;
+      const room = classrooms.find(r => r.id === roomId);
+      const roomName = room ? room.name : roomId;
+
+      classrooms = classrooms.filter(r => r.id !== roomId);
+      alerts = alerts.filter(a => a.roomId !== roomId);
+
+      if (assignedWebcamRoomId === roomId && classrooms.length > 0) {
+        assignedWebcamRoomId = classrooms[0].id;
+      }
+      if (selectedRoomId === roomId && classrooms.length > 0) {
+        selectedRoomId = classrooms[0].id;
+      }
+
+      persistData();
+      populateRoomSelects();
+      runGlobalDecisionEngine();
+      renderAllViews();
+      closeDeleteModal();
+      showToast(`Classroom "${roomName}" was removed from the system.`, 'success');
+    }
+
+    /* ==========================================================================
+       INITIALIZATION
+       ========================================================================== */
+    function renderAllViews() {
+      populateRoomSelects();
+      renderDashboard();
+      renderCamerasGrid();
+      renderAlerts();
+      renderAnalytics();
+      updateSidebarAlertBadge();
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      loadPersistedData();
+      populateRoomSelects();
+      runGlobalDecisionEngine();
+      renderAllViews();
+      // Pre-warm COCO-SSD asynchronously in background without blocking UI
+      setTimeout(() => { loadCocoModel(); }, 1000);
+    });
+  </script>
+</body>
+</html>
+
+
