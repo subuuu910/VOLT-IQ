@@ -354,95 +354,364 @@
     tr:last-child td { border-bottom: none; }
     tr:hover td { background-color: rgba(22, 120, 239, 0.04); }
 
-    /* CAMERA GRID */
+    /* ==========================================================================
+       PROFESSIONAL CCTV SURVEILLANCE STYLES (MATCHING REFERENCE UI)
+       ========================================================================== */
     .camera-grid {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
       gap: 16px;
     }
+    @media (max-width: 1200px) {
+      .camera-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 768px) {
+      .camera-grid { grid-template-columns: 1fr; }
+    }
     .camera-card {
-      background-color: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: 10px;
+      background-color: #081321;
+      border: 1px solid rgba(80, 150, 220, 0.18);
+      border-radius: 12px;
       overflow: hidden;
       display: flex;
       flex-direction: column;
-      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.55);
+      transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+      position: relative;
+    }
+    .camera-card:hover {
+      border-color: rgba(62, 166, 255, 0.45);
+      box-shadow: 0 14px 40px rgba(0, 0, 0, 0.7);
     }
     .camera-card.waste-alert {
-      border-color: rgba(255, 99, 120, 0.6);
-      box-shadow: 0 0 14px rgba(255, 99, 120, 0.15);
+      border-color: rgba(255, 82, 107, 0.7);
+      box-shadow: 0 0 24px rgba(255, 82, 107, 0.22);
     }
-    .camera-header {
-      padding: 10px 14px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      border-bottom: 1px solid var(--border);
-      background-color: rgba(11, 18, 32, 0.7);
+    .camera-card.live-feed-active {
+      border-color: rgba(32, 217, 139, 0.6);
+      box-shadow: 0 0 24px rgba(32, 217, 139, 0.2);
     }
-    .camera-preview {
-      height: 180px;
-      background-color: #070b14;
+    .camera-viewport {
+      height: 200px;
+      background-color: #050a14;
       position: relative;
       display: flex;
       align-items: center;
       justify-content: center;
       overflow: hidden;
+      margin: 10px 10px 0 10px;
+      border-radius: 8px 8px 6px 6px;
+      border: 1px solid rgba(80, 150, 220, 0.22);
     }
-    .camera-preview canvas, .camera-preview video {
+    .camera-viewport canvas,
+    .camera-viewport video {
       width: 100%;
       height: 100%;
+      display: block;
       object-fit: cover;
     }
-    .camera-overlay-hud {
+    .camera-viewport video {
       position: absolute;
-      top: 8px;
-      left: 8px;
-      right: 8px;
-      display: flex;
-      justify-content: space-between;
-      font-size: 9px;
-      color: #9ab0d3;
-      background: rgba(8, 13, 24, 0.75);
-      padding: 3px 8px;
-      border-radius: 4px;
-      backdrop-filter: blur(4px);
+      top: 0;
+      left: 0;
+      z-index: 1;
     }
-    .camera-body {
-      padding: 12px 14px;
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
+    /* Subtle scanlines and lens vignette overlay */
+    .cctv-scanline-overlay {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 3;
+      background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%),
+                  radial-gradient(ellipse at center, rgba(0, 0, 0, 0) 60%, rgba(1, 4, 10, 0.6) 100%);
+      background-size: 100% 3px, 100% 100%;
+      opacity: 0.85;
     }
-    .appliance-chips {
-      display: flex;
+    /* Top-Left pill on preview: READY or LIVE */
+    .cam-top-badge {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      display: inline-flex;
+      align-items: center;
       gap: 6px;
-      flex-wrap: wrap;
+      padding: 3px 9px;
+      border-radius: 14px;
+      background: rgba(5, 10, 20, 0.82);
+      border: 1px solid rgba(80, 150, 220, 0.35);
+      backdrop-filter: blur(8px);
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      color: #7f91a8;
+      z-index: 5;
     }
-    .appliance-chip {
+    .cam-top-badge.live {
+      border-color: rgba(32, 217, 139, 0.6);
+      background: rgba(4, 25, 15, 0.85);
+      color: #20d98b;
+    }
+    .cam-top-badge svg {
+      width: 12px;
+      height: 12px;
+      stroke: currentColor;
+    }
+    .cam-top-badge .dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background-color: #20d98b;
+      box-shadow: 0 0 6px #20d98b;
+      animation: pulse 1.8s infinite;
+    }
+    /* Top-Right AI Indicator */
+    .cam-ai-indicator {
+      position: absolute;
+      top: 10px;
+      right: 10px;
       display: inline-flex;
       align-items: center;
       gap: 4px;
       padding: 3px 8px;
-      border-radius: 6px;
+      border-radius: 12px;
+      background: rgba(11, 23, 39, 0.85);
+      border: 1px solid rgba(22, 140, 255, 0.4);
+      color: #3ea6ff;
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      backdrop-filter: blur(8px);
+      z-index: 5;
+    }
+    /* Bottom-Right corner label: e.g. Camera 101 */
+    .cam-corner-tag {
+      position: absolute;
+      bottom: 8px;
+      right: 10px;
       font-size: 10px;
-      font-weight: 500;
-      background-color: #0b1424;
-      border: 1px solid var(--border);
-      color: var(--text-muted);
+      font-weight: 600;
+      color: #7f91a8;
+      font-family: 'JetBrains Mono', monospace;
+      letter-spacing: 0.3px;
+      pointer-events: none;
+      z-index: 5;
+      background: rgba(5, 10, 20, 0.6);
+      padding: 2px 6px;
+      border-radius: 4px;
+      border: 1px solid rgba(80, 150, 220, 0.15);
+    }
+    /* Bottom-Left live FPS and Time watermark */
+    .cam-watermark {
+      position: absolute;
+      bottom: 8px;
+      left: 10px;
+      font-size: 9px;
+      color: rgba(127, 145, 168, 0.8);
+      font-family: 'JetBrains Mono', monospace;
+      letter-spacing: 0.3px;
+      pointer-events: none;
+      z-index: 5;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .camera-body {
+      padding: 12px 14px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      background-color: transparent;
+    }
+    .cam-title-row {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .cam-title-wrap h3 {
+      font-size: 15px;
+      font-weight: 700;
+      color: #f4f7fb;
+      line-height: 1.2;
+      margin-bottom: 2px;
+    }
+    .cam-title-wrap p {
+      font-size: 11px;
+      color: #7f91a8;
+      margin: 0;
+    }
+    .cam-status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 9px;
+      border-radius: 12px;
+      border: 1px solid rgba(80, 150, 220, 0.25);
+      background: rgba(11, 23, 39, 0.7);
+      font-size: 10px;
+      font-weight: 600;
+      color: #7f91a8;
+      letter-spacing: 0.4px;
+      flex-shrink: 0;
+    }
+    .cam-status-pill .pill-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      border: 1.5px solid #7f91a8;
+    }
+    .cam-status-pill.live {
+      border-color: rgba(32, 217, 139, 0.5);
+      color: #20d98b;
+      background: rgba(4, 25, 15, 0.8);
+    }
+    .cam-status-pill.live .pill-dot {
+      background-color: #20d98b;
+      border-color: #20d98b;
+      box-shadow: 0 0 6px #20d98b;
+    }
+    /* Telemetry 3-column stats row: AI | People | Energy */
+    .cam-telemetry-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      padding: 8px 10px;
+      border-radius: 6px;
+      background: #0b1727;
+      border: 1px solid rgba(80, 150, 220, 0.15);
+      gap: 6px;
+      text-align: center;
+    }
+    .cam-tele-col-label {
+      font-size: 10px;
+      font-weight: 600;
+      color: #7f91a8;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      margin-bottom: 2px;
+    }
+    .cam-tele-col-val {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.3px;
+    }
+    .cam-tele-col-val.blue {
+      color: #3ea6ff;
+    }
+    .cam-tele-col-val.white {
+      color: #f4f7fb;
+    }
+    .cam-tele-col-val.green {
+      color: #20d98b;
+    }
+    .cam-tele-col-val.red {
+      color: #ff526b;
+    }
+    /* Appliances toggler row inside card */
+    .cam-appliances-strip {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+      padding-top: 2px;
+    }
+    .appliance-chips {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      flex-wrap: wrap;
+    }
+    .appliance-chip {
+      padding: 3px 7px;
+      font-size: 10px;
+      font-weight: 600;
+      border-radius: 4px;
       cursor: pointer;
-      user-select: none;
+      border: 1px solid rgba(80, 150, 220, 0.18);
+      background-color: #0b1727;
+      color: #7f91a8;
       transition: all 0.15s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      user-select: none;
+    }
+    .appliance-chip:hover {
+      border-color: rgba(80, 150, 220, 0.4);
+      color: #f4f7fb;
     }
     .appliance-chip.on {
-      background-color: rgba(255, 184, 77, 0.12);
-      border-color: rgba(255, 184, 77, 0.45);
-      color: var(--orange);
+      background-color: rgba(255, 184, 77, 0.18);
+      border-color: #ffb84d;
+      color: #ffb84d;
+      box-shadow: 0 0 6px rgba(255, 184, 77, 0.25);
+    }
+    /* Buttons action row */
+    .cam-actions-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding-top: 2px;
+    }
+    .btn-start-camera {
+      flex: 1;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      background-color: #168cff;
+      color: #ffffff;
+      border: none;
+      border-radius: 6px;
+      padding: 7px 12px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background-color 0.15s ease, transform 0.1s ease;
+      box-shadow: 0 2px 8px rgba(22, 140, 255, 0.3);
+    }
+    .btn-start-camera:hover {
+      background-color: #3ea6ff;
+      transform: translateY(-1px);
+    }
+    .btn-start-camera.active-cam {
+      background-color: #20d98b;
+      box-shadow: 0 2px 8px rgba(32, 217, 139, 0.35);
+      color: #050a14;
+    }
+    .btn-ai-analysis {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background-color: #0b1727;
+      border: 1px solid rgba(80, 150, 220, 0.25);
+      color: #f4f7fb;
+      border-radius: 6px;
+      padding: 7px 12px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      white-space: nowrap;
+    }
+    .btn-ai-analysis:hover {
+      background-color: #12243d;
+      border-color: rgba(62, 166, 255, 0.5);
+    }
+    .btn-cam-delete {
+      background: transparent;
+      border: 1px solid rgba(255, 82, 107, 0.3);
+      color: #ff526b;
+      border-radius: 6px;
+      padding: 6px 9px;
+      font-size: 11px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .btn-cam-delete:hover {
+      background: rgba(255, 82, 107, 0.15);
+      border-color: #ff526b;
     }
 
-    /* AI ARCHITECTURE FLOW */
     .flow-chain {
       display: flex;
       align-items: center;
@@ -1508,155 +1777,382 @@
     /* ==========================================================================
        CAMERA MONITORING
        ========================================================================== */
+    /* ==========================================================================
+       CAMERA MONITORING
+       ========================================================================== */
     function renderCamerasGrid() {
       const container = document.getElementById('cameras-grid-container');
+      if (!container) return;
       container.innerHTML = '';
+
+      const nowTimeStr = new Date().toLocaleTimeString('en-US', { hour12: false });
 
       classrooms.forEach(room => {
         const dec = evaluateRoomDecision(room);
         const isAssigned = (room.id === assignedWebcamRoomId);
+        const isStreamLive = (isAssigned && localStream && isAIDetecting);
 
         const card = document.createElement('div');
-        card.className = `camera-card ${dec.isWaste ? 'waste-alert' : ''}`;
+        card.className = `camera-card ${dec.isWaste ? 'waste-alert' : ''} ${isStreamLive ? 'live-feed-active' : ''}`;
+        card.id = `camera-card-${room.id}`;
         card.innerHTML = `
-          <div class="camera-header">
-            <div>
-              <strong style="color:#fff;font-size:13px;">${room.name}</strong>
-              <div style="font-size:9px;color:var(--text-sub);">${room.location}</div>
-            </div>
-            <div style="display:flex;align-items:center;gap:6px;">
-              <span class="badge ${isAssigned ? 'badge-normal' : 'badge-empty'}" style="font-size:9px;">
-                ${isAssigned ? '● LIVE' : 'READY'}
-              </span>
-            </div>
-          </div>
+          <!-- Realistic CCTV Surveillance Viewport -->
+          <div class="camera-viewport" id="preview-box-${room.id}">
+            <!-- Background Live Video element if mapped to webcam stream -->
+            <video id="card-video-${room.id}" autoplay playsinline muted style="${isStreamLive ? 'display:block;' : 'display:none;'}"></video>
 
-          <div class="camera-preview" id="preview-box-${room.id}">
-            <div class="camera-overlay-hud">
-              <span>CAM-${room.id} &bull; 1080P 30FPS</span>
-              <span>${isAssigned ? 'ACTIVE WEBCAM' : 'SURVEILLANCE'}</span>
+            <!-- CCTV Dark grid, crosshairs & telemetry canvas (renders when idle or over webcam) -->
+            <canvas id="cam-canvas-${room.id}" width="400" height="220"></canvas>
+
+            <!-- Film raster scanlines + lens vignette overlay -->
+            <div class="cctv-scanline-overlay"></div>
+
+            <!-- Top-Left Status Pill: ● LIVE (green) or ● READY (subtle gray) -->
+            <div class="cam-top-badge ${isStreamLive ? 'live' : ''}" id="cam-badge-${room.id}">
+              ${isStreamLive ? '<span class="dot"></span> LIVE' : '<span>●</span> READY'}
             </div>
-            <!-- Canvas preview representation -->
-            <canvas id="cam-canvas-${room.id}" width="320" height="180" style="width:100%;height:100%;"></canvas>
+
+            <!-- Top-Right AI ACTIVE / STANDBY Indicator -->
+            <div class="cam-ai-indicator">
+              <span>AI ${isAssigned ? 'ACTIVE' : 'STANDBY'}</span>
+            </div>
+
+            <!-- Bottom-Left Watermark: FPS, Stream & Clock -->
+            <div class="cam-watermark" id="cam-watermark-${room.id}">
+              <span>FPS: ${isStreamLive ? '30.0' : '--'}</span>
+              <span>${nowTimeStr}</span>
+            </div>
+
+            <!-- Bottom-Right Tag: CAMERA [ID] -->
+            <div class="cam-corner-tag">CAM ${room.id}</div>
+
+            <!-- Waste Alert Banner on video feed if wasting energy -->
             ${dec.isWaste ? `
-              <div style="position:absolute;bottom:8px;left:8px;background:rgba(255,99,120,0.85);color:#fff;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;">
-                ⚠ ENERGY WASTE
+              <div style="position:absolute;bottom:8px;left:50%;transform:translateX(-50%);background:rgba(255,82,107,0.92);backdrop-filter:blur(6px);color:#fff;padding:2px 10px;border-radius:4px;font-size:10px;font-weight:700;letter-spacing:0.5px;display:flex;align-items:center;gap:4px;box-shadow:0 4px 12px rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.25);z-index:6;white-space:nowrap;">
+                <span>⚠</span> ENERGY WASTE
               </div>
             ` : ''}
           </div>
 
+          <!-- Card Body: Room metadata, 3-column telemetry & appliances -->
           <div class="camera-body">
-            <div style="display:flex;justify-content:space-between;align-items:center;">
-              <span style="font-size:11px;color:var(--text-sub);">AI Status: <strong style="color:var(--primary-light);">ACTIVE</strong></span>
-              <span class="badge ${room.occupancy === 'OCCUPIED' ? 'badge-occupied' : 'badge-empty'}">
-                ${room.occupancy} (${room.people})
-              </span>
+            <!-- Room Title and Pill -->
+            <div class="cam-title-row">
+              <div class="cam-title-wrap">
+                <h3>${room.name}</h3>
+                <p>${room.location}</p>
+              </div>
+              <div class="cam-status-pill ${isStreamLive ? 'live' : ''}">
+                <span class="pill-dot"></span>
+                <span>${isStreamLive ? 'LIVE' : 'READY'}</span>
+              </div>
             </div>
 
-            <div style="display:flex;justify-content:space-between;align-items:center;">
-              <span style="font-size:11px;color:var(--text-sub);">Appliance State:</span>
+            <!-- 3-Column Telemetry: AI | People | Energy -->
+            <div class="cam-telemetry-row">
+              <div>
+                <div class="cam-tele-col-label">AI</div>
+                <div class="cam-tele-col-val blue">${isAssigned ? 'ACTIVE' : 'STANDBY'}</div>
+              </div>
+              <div>
+                <div class="cam-tele-col-label">People</div>
+                <div class="cam-tele-col-val white">${room.people}</div>
+              </div>
+              <div>
+                <div class="cam-tele-col-label">Energy</div>
+                <div class="cam-tele-col-val ${dec.isWaste ? 'red' : 'green'}">
+                  ${dec.isWaste ? 'WASTE' : 'NORMAL'}
+                </div>
+              </div>
+            </div>
+
+            <!-- Appliance Quick Controls Strip -->
+            <div class="cam-appliances-strip">
+              <span style="font-size:10px;font-weight:600;color:#7f91a8;">Appliances:</span>
               <div class="appliance-chips">
-                <span class="appliance-chip ${room.light ? 'on' : ''}" onclick="toggleRoomAppliance('${room.id}', 'light')">
+                <span class="appliance-chip ${room.light ? 'on' : ''}" onclick="toggleRoomAppliance('${room.id}', 'light')" title="Toggle Light">
                   💡 Light
                 </span>
-                <span class="appliance-chip ${room.fan ? 'on' : ''}" onclick="toggleRoomAppliance('${room.id}', 'fan')">
+                <span class="appliance-chip ${room.fan ? 'on' : ''}" onclick="toggleRoomAppliance('${room.id}', 'fan')" title="Toggle Fan">
                   🌀 Fan
                 </span>
-                <span class="appliance-chip ${room.projector ? 'on' : ''}" onclick="toggleRoomAppliance('${room.id}', 'projector')">
-                  📽 Proj
+                <span class="appliance-chip ${room.projector ? 'on' : ''}" onclick="toggleRoomAppliance('${room.id}', 'projector')" title="Toggle Projector">
+                  📽 Projector
                 </span>
               </div>
             </div>
 
-            <div style="display:flex;justify-content:space-between;align-items:center;padding-top:6px;border-top:1px solid var(--border);">
-              <div>
-                <div style="font-size:9px;color:var(--text-sub);">DECISION</div>
-                <span class="badge ${dec.isWaste ? 'badge-waste' : 'badge-normal'}">
-                  ${dec.isWaste ? '⚠ ENERGY WASTE' : '✓ NORMAL'}
-                </span>
-              </div>
-              <div style="display:flex;gap:6px;align-items:center;">
-                <button class="btn btn-secondary" style="padding:4px 8px;font-size:10px;" onclick="assignWebcamTarget('${room.id}')">
-                  ${isAssigned ? 'Assigned' : 'Assign Cam'}
-                </button>
-                <button class="btn btn-primary" style="padding:4px 8px;font-size:10px;" onclick="goToAIDetection('${room.id}')">
-                  AI Analysis
-                </button>
-                <button class="btn btn-secondary" style="padding:4px 8px;font-size:10px;color:var(--red);border-color:rgba(255,99,120,0.4);" title="Delete ${room.name}" onclick="event.stopPropagation(); deleteClassroom('${room.id}')">
-                  🗑 Delete
-                </button>
-              </div>
+            <!-- Action buttons: Start camera + AI Analysis + Delete -->
+            <div class="cam-actions-row">
+              <button class="btn-start-camera ${isStreamLive ? 'active-cam' : ''}" onclick="toggleClassroomCameraFeed('${room.id}')" title="Connect camera feed">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  ${isStreamLive ? '<rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect>' : '<polygon points="5 3 19 12 5 21 5 3"></polygon>'}
+                </svg>
+                <span>${isStreamLive ? 'Live Stream' : (isAssigned ? 'Start camera' : 'Assign & Start')}</span>
+              </button>
+              <button class="btn-ai-analysis" onclick="goToAIDetection('${room.id}')" title="Open AI Analysis">
+                AI Analysis
+              </button>
+              <button class="btn-cam-delete" title="Delete ${room.name}" onclick="event.stopPropagation(); deleteClassroom('${room.id}')">
+                ✕
+              </button>
             </div>
           </div>
         `;
         container.appendChild(card);
-        drawCameraSimCanvas(room.id, room.people, room.light, dec.isWaste);
+
+        // Attach localStream if this room is the active webcam target
+        const vidEl = document.getElementById(`card-video-${room.id}`);
+        if (vidEl && isStreamLive && localStream) {
+          vidEl.srcObject = localStream;
+          vidEl.play().catch(e => console.warn('Card video play error:', e));
+        }
+
+        drawCameraSimCanvas(room, dec.isWaste);
       });
     }
 
-    function drawCameraSimCanvas(roomId, peopleCount, isLightOn, isWaste) {
-      const canvas = document.getElementById(`cam-canvas-${roomId}`);
+    function drawCameraSimCanvas(room, isWaste, frameTime) {
+      const canvas = document.getElementById(`cam-canvas-${room.id}`);
       if (!canvas) return;
       const ctx = canvas.getContext('2d');
       const w = canvas.width;
       const h = canvas.height;
+      const now = frameTime || performance.now();
+      const isAssigned = (room.id === assignedWebcamRoomId);
+      const isStreamLive = (isAssigned && localStream && isAIDetecting);
 
-      // Background room environment
-      ctx.fillStyle = isLightOn ? '#101c2e' : '#070b12';
+      // If physical stream is live behind canvas, make canvas transparent so bounding boxes and overlay show on top
+      if (isStreamLive) {
+        ctx.clearRect(0, 0, w, h);
+
+        // Draw professional thin computer vision bounding boxes if people are detected
+        if (room.people > 0) {
+          ctx.strokeStyle = '#20d98b';
+          ctx.lineWidth = 1.5;
+
+          if (room.people >= 1) {
+            // Box 1
+            const bx1 = w * 0.32, by1 = h * 0.22, bw1 = w * 0.22, bh1 = h * 0.58;
+            ctx.strokeRect(bx1, by1, bw1, bh1);
+            // Label tag
+            ctx.fillStyle = 'rgba(32, 217, 139, 0.9)';
+            ctx.fillRect(bx1, by1 - 16, 75, 16);
+            ctx.fillStyle = '#050a14';
+            ctx.font = '700 9px "JetBrains Mono", monospace';
+            ctx.textAlign = 'left';
+            ctx.fillText('PERSON 96%', bx1 + 4, by1 - 4);
+          }
+
+          if (room.people >= 2) {
+            // Box 2
+            const bx2 = w * 0.60, by2 = h * 0.28, bw2 = w * 0.20, bh2 = h * 0.52;
+            ctx.strokeRect(bx2, by2, bw2, bh2);
+            ctx.fillStyle = 'rgba(32, 217, 139, 0.9)';
+            ctx.fillRect(bx2, by2 - 16, 75, 16);
+            ctx.fillStyle = '#050a14';
+            ctx.font = '700 9px "JetBrains Mono", monospace';
+            ctx.textAlign = 'left';
+            ctx.fillText('PERSON 91%', bx2 + 4, by2 - 4);
+          }
+
+          // Top live detection banner
+          ctx.fillStyle = 'rgba(11, 23, 39, 0.75)';
+          ctx.fillRect(w / 2 - 70, 8, 140, 18);
+          ctx.strokeStyle = 'rgba(32, 217, 139, 0.5)';
+          ctx.strokeRect(w / 2 - 70, 8, 140, 18);
+          ctx.fillStyle = '#20d98b';
+          ctx.font = '700 9px Inter, sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText(`AI DETECTED: ${room.people} ${room.people === 1 ? 'PERSON' : 'PEOPLE'}`, w / 2, 20);
+        }
+
+        // Viewfinder corner reticles
+        const cornerLen = 14;
+        ctx.strokeStyle = 'rgba(62, 166, 255, 0.65)';
+        ctx.lineWidth = 1.5;
+        // Top-left
+        ctx.beginPath();
+        ctx.moveTo(12, 12 + cornerLen);
+        ctx.lineTo(12, 12);
+        ctx.lineTo(12 + cornerLen, 12);
+        ctx.stroke();
+        // Top-right
+        ctx.beginPath();
+        ctx.moveTo(w - 12 - cornerLen, 12);
+        ctx.lineTo(w - 12, 12);
+        ctx.lineTo(w - 12, 12 + cornerLen);
+        ctx.stroke();
+        // Bottom-left
+        ctx.beginPath();
+        ctx.moveTo(12, h - 12 - cornerLen);
+        ctx.lineTo(12, h - 12);
+        ctx.lineTo(12 + cornerLen, h - 12);
+        ctx.stroke();
+        // Bottom-right
+        ctx.beginPath();
+        ctx.moveTo(w - 12 - cornerLen, h - 12);
+        ctx.lineTo(w - 12, h - 12);
+        ctx.lineTo(w - 12, h - 12 - cornerLen);
+        ctx.stroke();
+
+        return;
+      }
+
+      // =========================================================================
+      // SIMULATED CCTV WORKSTATION PLACEHOLDER (when camera not yet streaming)
+      // =========================================================================
+
+      // Deep dark navy / near-black monitor background (#050a14)
+      ctx.fillStyle = '#050a14';
       ctx.fillRect(0, 0, w, h);
 
-      // Floor grid perspective
-      ctx.strokeStyle = isLightOn ? '#1a2b42' : '#0e1724';
+      // Subtle blue perspective surveillance grid with gentle motion
+      const gridOffsetY = (now * 0.012) % 20;
+      ctx.strokeStyle = 'rgba(22, 140, 255, 0.08)';
       ctx.lineWidth = 1;
-      for (let x = 0; x <= w; x += 40) {
+      const gridStep = 22;
+      for (let x = 0; x <= w; x += gridStep) {
         ctx.beginPath();
-        ctx.moveTo(x, h * 0.4);
-        ctx.lineTo((x - w / 2) * 2 + w / 2, h);
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, h * 0.7);
+        ctx.stroke();
+      }
+      for (let y = gridOffsetY; y <= h * 0.7; y += gridStep) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(w, y);
         ctx.stroke();
       }
 
-      // Draw whiteboard/screen at back
-      ctx.fillStyle = '#1c2e47';
-      ctx.fillRect(w * 0.3, h * 0.15, w * 0.4, h * 0.35);
-      ctx.strokeStyle = '#2b4468';
-      ctx.strokeRect(w * 0.3, h * 0.15, w * 0.4, h * 0.35);
+      // Soft blue ambient lens illumination bloom with subtle breathing pulse
+      const pulse = Math.sin(now * 0.002) * 0.06;
+      const beamGrad = ctx.createRadialGradient(w / 2, h / 2 - 6, 8, w / 2, h / 2 - 6, w * (0.42 + pulse));
+      beamGrad.addColorStop(0, isAssigned ? 'rgba(22, 140, 255, 0.28)' : 'rgba(14, 55, 110, 0.24)');
+      beamGrad.addColorStop(0.5, isAssigned ? 'rgba(14, 55, 110, 0.12)' : 'rgba(8, 25, 55, 0.10)');
+      beamGrad.addColorStop(1, 'rgba(5, 10, 20, 0)');
+      ctx.fillStyle = beamGrad;
+      ctx.fillRect(0, h * 0.12, w, h * 0.78);
 
-      // Desks
-      ctx.fillStyle = '#152438';
-      ctx.fillRect(40, h * 0.65, 80, 20);
-      ctx.fillRect(200, h * 0.65, 80, 20);
+      // Subtle digital scanline raster animation
+      const scanOffset = (now * 0.02) % 4;
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.20)';
+      for (let sl = scanOffset; sl < h; sl += 4) {
+        ctx.fillRect(0, sl, w, 1);
+      }
 
-      // Draw people silhouettes if occupied
-      if (peopleCount > 0) {
-        for (let i = 0; i < Math.min(peopleCount, 4); i++) {
-          const px = 70 + i * 50;
-          const py = h * 0.58;
+      // Viewfinder corner reticles (CCTV targeting overlay)
+      const cornerLen = 14;
+      ctx.strokeStyle = isAssigned ? 'rgba(62, 166, 255, 0.45)' : 'rgba(80, 150, 220, 0.22)';
+      ctx.lineWidth = 1.5;
+      // Top-left
+      ctx.beginPath();
+      ctx.moveTo(12, 12 + cornerLen);
+      ctx.lineTo(12, 12);
+      ctx.lineTo(12 + cornerLen, 12);
+      ctx.stroke();
+      // Top-right
+      ctx.beginPath();
+      ctx.moveTo(w - 12 - cornerLen, 12);
+      ctx.lineTo(w - 12, 12);
+      ctx.lineTo(w - 12, 12 + cornerLen);
+      ctx.stroke();
+      // Bottom-left
+      ctx.beginPath();
+      ctx.moveTo(12, h - 12 - cornerLen);
+      ctx.lineTo(12, h - 12);
+      ctx.lineTo(12 + cornerLen, h - 12);
+      ctx.stroke();
+      // Bottom-right
+      ctx.beginPath();
+      ctx.moveTo(w - 12 - cornerLen, h - 12);
+      ctx.lineTo(w - 12, h - 12);
+      ctx.lineTo(w - 12, h - 12 - cornerLen);
+      ctx.stroke();
 
-          // Head
-          ctx.fillStyle = '#62a8ff';
-          ctx.beginPath();
-          ctx.arc(px, py, 10, 0, Math.PI * 2);
-          ctx.fill();
+      // Center CCTV Camera Reticle & Icon
+      const cx = w / 2;
+      const cy = h / 2 - 14;
 
-          // Body
-          ctx.beginPath();
-          ctx.ellipse(px, py + 22, 14, 16, 0, 0, Math.PI * 2);
-          ctx.fill();
+      ctx.strokeStyle = isAssigned ? '#3ea6ff' : '#4d6582';
+      ctx.lineWidth = 1.8;
+      ctx.lineJoin = 'round';
+      ctx.lineCap = 'round';
 
-          // Green AI detection box
-          ctx.strokeStyle = '#35d07f';
-          ctx.lineWidth = 1.5;
-          ctx.strokeRect(px - 16, py - 12, 32, 48);
-          ctx.fillStyle = '#35d07f';
-          ctx.font = '8px monospace';
-          ctx.fillText('person: 92%', px - 16, py - 14);
-        }
+      // Camera body
+      ctx.beginPath();
+      ctx.moveTo(cx - 7, cy - 13);
+      ctx.lineTo(cx - 4, cy - 17);
+      ctx.lineTo(cx + 4, cy - 17);
+      ctx.lineTo(cx + 7, cy - 13);
+      ctx.lineTo(cx + 17, cy - 13);
+      ctx.arcTo(cx + 20, cy - 13, cx + 20, cy - 10, 3);
+      ctx.lineTo(cx + 20, cy + 9);
+      ctx.arcTo(cx + 20, cy + 12, cx + 17, cy + 12, 3);
+      ctx.lineTo(cx - 17, cy + 12);
+      ctx.arcTo(cx - 20, cy + 12, cx - 20, cy + 9, 3);
+      ctx.lineTo(cx - 20, cy - 10);
+      ctx.arcTo(cx - 20, cy - 13, cx - 17, cy - 13, 3);
+      ctx.closePath();
+      ctx.stroke();
+
+      // Camera lens outer ring
+      ctx.beginPath();
+      ctx.arc(cx, cy - 1, 6.5, 0, Math.PI * 2);
+      ctx.stroke();
+
+      // Pulsing lens aperture core
+      const lensAlpha = 0.35 + Math.sin(now * 0.003) * 0.25;
+      ctx.fillStyle = isAssigned ? `rgba(62, 166, 255, ${lensAlpha})` : `rgba(80, 150, 220, ${lensAlpha})`;
+      ctx.beginPath();
+      ctx.arc(cx, cy - 1, 3.2, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Small blinking status optical LED
+      const flashBlink = (Math.floor(now / 1000) % 2 === 0);
+      ctx.fillStyle = flashBlink ? (isAssigned ? '#3ea6ff' : '#20d98b') : '#1e293b';
+      ctx.beginPath();
+      ctx.arc(cx + 12, cy - 7, 1.8, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Camera ID & Telemetry Name: "CAMERA [ID]" in clean typography
+      ctx.textAlign = 'center';
+      ctx.font = '600 11px Inter, sans-serif';
+      ctx.fillStyle = isAssigned ? '#f4f7fb' : '#7f91a8';
+      ctx.letterSpacing = '1.2px';
+      ctx.fillText(`CAMERA ${room.id}`, cx, cy + 28);
+
+      // Micro subtitle
+      ctx.font = '500 9px "JetBrains Mono", monospace';
+      ctx.fillStyle = 'rgba(127, 145, 168, 0.65)';
+      ctx.letterSpacing = '0.5px';
+      ctx.fillText(isAssigned ? 'DEMO WEBCAM BOUND' : 'RTSP / IP STANDBY', cx, cy + 42);
+
+      // Subtle center reticle crosshair tick marks
+      ctx.strokeStyle = 'rgba(80, 150, 220, 0.25)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(cx - 38, cy - 1);
+      ctx.lineTo(cx - 26, cy - 1);
+      ctx.moveTo(cx + 26, cy - 1);
+      ctx.lineTo(cx + 38, cy - 1);
+      ctx.stroke();
+    }
+
+    async function toggleClassroomCameraFeed(roomId) {
+      // If clicking a classroom that wasn't the active target, bind it
+      if (assignedWebcamRoomId !== roomId) {
+        assignWebcamTarget(roomId);
+      }
+
+      // If webcam stream is not active, start it
+      if (!localStream || !isAIDetecting) {
+        await startAIDetection();
+        renderCamerasGrid();
+        showToast(`Camera feed connected for Room ${roomId}`, 'success');
       } else {
-        ctx.fillStyle = '#536885';
-        ctx.font = '10px Inter, sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText('ROOM EMPTY (0 Occupants)', w / 2, h * 0.85);
-        ctx.textAlign = 'start';
+        // Feed is already running, switch binding smoothly
+        renderCamerasGrid();
       }
     }
 
@@ -2284,6 +2780,39 @@
     /* ==========================================================================
        INITIALIZATION
        ========================================================================== */
+    let liveAnimationId = null;
+    let lastClockUpdateSecond = -1;
+    function startLiveCameraLoop() {
+      if (liveAnimationId) return;
+      function tick(time) {
+        // Only re-draw canvas feeds when cameras page is active
+        const pageCameras = document.getElementById('page-cameras');
+        if (pageCameras && pageCameras.classList.contains('active')) {
+          classrooms.forEach(room => {
+            const dec = evaluateRoomDecision(room);
+            drawCameraSimCanvas(room, dec.isWaste, time);
+          });
+
+          // Update live camera timestamp watermarks once every second
+          const currentSec = Math.floor(Date.now() / 1000);
+          if (currentSec !== lastClockUpdateSecond) {
+            lastClockUpdateSecond = currentSec;
+            const nowTimeStr = new Date().toLocaleTimeString('en-US', { hour12: false });
+            classrooms.forEach(room => {
+              const isAssigned = (room.id === assignedWebcamRoomId);
+              const isStreamLive = (isAssigned && localStream && isAIDetecting);
+              const wm = document.getElementById(`cam-watermark-${room.id}`);
+              if (wm) {
+                wm.innerHTML = `<span>FPS: ${isStreamLive ? '30.0' : '--'}</span><span>${nowTimeStr}</span>`;
+              }
+            });
+          }
+        }
+        liveAnimationId = requestAnimationFrame(tick);
+      }
+      liveAnimationId = requestAnimationFrame(tick);
+    }
+
     function renderAllViews() {
       populateRoomSelects();
       renderDashboard();
@@ -2298,6 +2827,7 @@
       populateRoomSelects();
       runGlobalDecisionEngine();
       renderAllViews();
+      startLiveCameraLoop();
       // Pre-warm COCO-SSD asynchronously in background without blocking UI
       setTimeout(() => { loadCocoModel(); }, 1000);
     });
